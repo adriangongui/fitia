@@ -5,6 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+function generateUUID() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
+
+type Conversation = {
+  id: string;
+  title: string;
+  created_at: string;
+};
+
 export default function ChatPage() {
   const router = useRouter();
 
@@ -13,6 +25,11 @@ export default function ChatPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [nombre, setNombre] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Chat History Management
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Manual chat state
   const [messages, setMessages] = useState<{ id: string; role: "user" | "assistant"; content: string }[]>([]);
@@ -27,19 +44,33 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim() || isLoading || !userId) return;
 
+    const currentInput = input.trim();
+    // Ensure we have a conversationId for the initial message
+    const activeConvId = conversationId || generateUUID();
+
     // Update local state optimistic
-    const userMessage = { id: Date.now().toString(), role: "user" as const, content: input.trim() };
+    const userMessage = { id: Date.now().toString(), role: "user" as const, content: currentInput };
     const newMessages = [...messages, userMessage];
     
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
 
+    // If this is the very first message of a new conversation, map it in the sidebar
+    if (!conversationId) {
+      setConversationId(activeConvId);
+      setConversations(prev => [{
+        id: activeConvId,
+        title: currentInput.split(" ").slice(0, 5).join(" ") + (currentInput.split(" ").length > 5 ? "..." : ""),
+        created_at: new Date().toISOString()
+      }, ...prev]);
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, userId }),
+        body: JSON.stringify({ messages: newMessages, userId, conversationId: activeConvId }),
       });
 
       if (!res.ok) {
@@ -97,16 +128,39 @@ export default function ChatPage() {
         setNombre(perfil.nombre);
       }
 
-      // Cargar historial de chat
-      const { data: historial } = await supabase
+      // Cargar panel lateral de conversaciones ("Historial") buscando el primer mensaje por conversation_id
+      const { data: convData } = await supabase
         .from("mensajes_chat")
-        .select("id, role, content")
+        .select("conversation_id, content, created_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
+        .eq("role", "user")
+        .order("created_at", { ascending: true }); // We group manually because Supabase doesn't easily allow distinct on complex orderings
 
-      if (historial && historial.length > 0) {
-        setMessages(historial as any);
+      if (convData && convData.length > 0) {
+        // Group by conversation_id to get first message (title) per conversation
+        const convosMap = new Map<string, Conversation>();
+        for (const msg of convData) {
+          if (msg.conversation_id && !convosMap.has(msg.conversation_id)) {
+            const words = msg.content.split(" ").slice(0, 5).join(" ");
+            convosMap.set(msg.conversation_id, {
+              id: msg.conversation_id,
+              title: words + (msg.content.split(" ").length > 5 ? "..." : ""),
+              created_at: msg.created_at
+            });
+          }
+        }
+        
+        // Convert map back to array and order nicely DESC
+        const loadedConversations = Array.from(convosMap.values()).sort((a,b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        setConversations(loadedConversations);
+
+        // Load most recent active conversation automatically
+        if (loadedConversations.length > 0) {
+          await loadConversation(loadedConversations[0].id);
+        }
       }
 
       setLoadingUser(false);
@@ -114,6 +168,30 @@ export default function ChatPage() {
 
     fetchUser();
   }, [router]);
+
+  const loadConversation = async (id: string) => {
+    // If it's already loading or we're creating a new one, handle here
+    setConversationId(id);
+    setSidebarOpen(false); // Mobile UX
+    
+    const { data: historial } = await supabase
+      .from("mensajes_chat")
+      .select("id, role, content")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: true });
+
+    if (historial && historial.length > 0) {
+      setMessages(historial as any);
+    } else {
+      setMessages([]);
+    }
+  };
+
+  const createNewConversation = () => {
+    setConversationId(null);
+    setMessages([]);
+    setSidebarOpen(false);
+  };
 
   const nombreCorto = useMemo(() => {
     if (nombre) return nombre;
@@ -142,25 +220,38 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen relative text-zinc-50 tracking-tight overflow-hidden">
-      {/* Abstract Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-950 to-zinc-900 z-0"></div>
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-        {/* Glow Effects */}
-        <div className="absolute top-1/4 left-0 w-96 h-96 bg-[#b6f542]/20 rounded-full blur-[150px] mix-blend-screen"></div>
-        <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-[#b6f542]/10 rounded-full blur-[200px] mix-blend-screen"></div>
-        {/* Abstract geometric lines */}
-        <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <path d="M-100 200 Q 300 100 800 500 T 2000 300" fill="none" stroke="rgba(182,245,66,0.15)" strokeWidth="1" />
-          <path d="M-100 400 Q 400 600 900 200 T 2000 800" fill="none" stroke="rgba(182,245,66,0.1)" strokeWidth="2" />
-          <path d="M500 -100 Q 700 400 400 900" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-          <circle cx="80%" cy="20%" r="300" stroke="rgba(255,255,255,0.02)" strokeWidth="1" fill="none" />
-          <circle cx="20%" cy="80%" r="400" stroke="rgba(182,245,66,0.03)" strokeWidth="1" fill="none" />
+    <div className="flex flex-col min-h-screen relative overflow-hidden bg-black text-zinc-50 tracking-tight">
+      {/* Abstract Background - Deportes & Nutrición */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Gradientes oscuros de fondo */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#182a10_0%,#000000_70%)] opacity-80" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,#15200b_0%,#000000_50%)] opacity-60" />
+        
+        {/* Resplandores abstractos en #b6f542 */}
+        <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-[#b6f542]/5 blur-[120px] mix-blend-screen" />
+        <div className="absolute top-[40%] right-[10%] w-[30vw] h-[30vw] rounded-full bg-[#b6f542]/5 blur-[100px] mix-blend-screen" />
+        <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-[#b6f542]/5 blur-[150px] mix-blend-screen" />
+
+        {/* Formas geométricas / Líneas de energía (SVG) */}
+        <svg className="absolute w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+          {/* Ondas sinuosas que representan fluidez y movimiento */}
+          <path d="M-100 150 C 300 300 600 0 1000 150 S 1600 300 2000 150" fill="none" stroke="rgba(182,245,66,0.15)" strokeWidth="1.5" />
+          <path d="M-100 200 C 400 350 700 50 1100 200 S 1700 350 2000 200" fill="none" stroke="rgba(182,245,66,0.1)" strokeWidth="1" />
+          
+          {/* Diagonales veloces (dinamismo, deporte) */}
+          <line x1="0%" y1="100%" x2="40%" y2="0%" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="20%" y1="100%" x2="60%" y2="0%" stroke="rgba(255,255,255,0.02)" strokeWidth="2" />
+          <line x1="60%" y1="100%" x2="100%" y2="0%" stroke="rgba(182,245,66,0.04)" strokeWidth="1" />
+          
+          {/* Círculos concéntricos (foco, precisión) */}
+          <circle cx="85%" cy="30%" r="200" stroke="rgba(182,245,66,0.05)" strokeWidth="1" fill="none" strokeDasharray="4 4" />
+          <circle cx="85%" cy="30%" r="300" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" fill="none" />
+          <circle cx="10%" cy="80%" r="400" stroke="rgba(182,245,66,0.03)" strokeWidth="1" fill="none" />
         </svg>
       </div>
       
       {/* HEADER */}
-      <header className="flex-none border-b border-zinc-800/80 bg-black/40 backdrop-blur z-10 sticky top-0">
+      <header className="flex-none border-b border-zinc-800/80 bg-black/40 backdrop-blur z-20 sticky top-0">
         <div className="mx-auto flex max-w-4xl w-full items-center justify-between gap-4 px-6 py-4 md:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex items-center gap-2 cursor-default">
@@ -171,6 +262,12 @@ export default function ChatPage() {
             </div>
 
             <nav className="hidden xl:flex items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 md:flex">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border-r border-zinc-800/80 pr-3 mr-1 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100"
+              >
+                <span aria-hidden className="text-sm">📚</span> Historial
+              </button>
               <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">⬚</span> Dashboard
               </Link>
@@ -222,6 +319,66 @@ export default function ChatPage() {
           </div>
         </div>
       </header>
+
+      {/* OVERLAY & SIDEBAR HISTORIAL */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <div 
+        className={
+          `fixed top-0 right-0 z-50 h-full w-80 max-w-[85vw] transform bg-zinc-950 border-l border-zinc-800/80 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col ${
+            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          }`
+        }
+      >
+        <div className="p-4 border-b border-zinc-800/80 flex justify-between items-center">
+          <h3 className="font-semibold text-zinc-50">Historial de Chat</h3>
+          <button onClick={() => setSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <div className="p-4">
+          <button 
+            onClick={createNewConversation}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#b6f542]/10 border border-[#b6f542]/30 px-4 py-3 text-sm font-semibold text-[#b6f542] transition hover:bg-[#b6f542]/20 shadow-[0_0_15px_rgba(182,245,66,0.15)]"
+          >
+            <span>+</span> Nueva conversación
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2">
+          {conversations.length === 0 ? (
+            <div className="p-4 text-center text-sm text-zinc-500">
+              No tienes conversaciones previas.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {conversations.map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => loadConversation(conv.id)}
+                  className={`flex flex-col items-start gap-1 w-full rounded-xl px-4 py-3 text-left transition ${
+                    conversationId === conv.id 
+                    ? "bg-zinc-900 border border-zinc-700/80 shadow-md" 
+                    : "hover:bg-zinc-900/50 hover:pl-5 text-zinc-400"
+                  }`}
+                >
+                  <span className={`text-sm font-medium line-clamp-1 ${conversationId === conv.id ? 'text-zinc-100' : ''}`}>
+                    {conv.title}
+                  </span>
+                  <span className="text-[10px] text-zinc-600">
+                    {new Date(conv.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* CHAT AREA */}
       <main className="flex-1 overflow-hidden flex flex-col mx-auto w-full max-w-4xl relative">

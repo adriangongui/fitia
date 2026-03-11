@@ -360,10 +360,10 @@ export default function IngresarPage() {
       </header>
 
       {/* PÁGINA PRINCIPAL */}
-      <main className="mx-auto max-w-4xl px-6 py-8 md:px-8 md:py-10">
-        <div className="grid gap-6">
+      <main className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
+        <div className="grid gap-6 lg:grid-cols-12">
           {/* Columna principal */}
-          <section className="col-span-12">
+          <section className="col-span-12 lg:col-span-8">
             {/* Registrar comida */}
             <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-5">
               <div className="flex items-end justify-between gap-4">
@@ -537,6 +537,49 @@ export default function IngresarPage() {
               </div>
             </div>
           </section>
+
+          {/* Columna lateral: Último registro */}
+          <aside className="lg:col-span-4">
+            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-5 sticky top-24">
+              <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                Último registro
+              </p>
+              {ultimoResultado ? (
+                <div className="mt-3">
+                  <p className="text-base font-semibold text-zinc-50">
+                    {ultimoResultado.nombre_plato}
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-300">
+                    <span className="font-semibold text-[#b6f542]">
+                      {formatNumber(ultimoResultado.calorias)}
+                    </span>{" "}
+                    kcal
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 text-center">
+                      <p className="text-[10px] uppercase text-zinc-500">Prot.</p>
+                      <p className="mt-1 font-medium text-zinc-100">{formatNumber(ultimoResultado.proteinas)}g</p>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 text-center">
+                      <p className="text-[10px] uppercase text-zinc-500">Carb.</p>
+                      <p className="mt-1 font-medium text-zinc-100">{formatNumber(ultimoResultado.carbohidratos)}g</p>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 text-center">
+                      <p className="text-[10px] uppercase text-zinc-500">Grasas</p>
+                      <p className="mt-1 font-medium text-zinc-100">{formatNumber(ultimoResultado.grasas)}g</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800/80 p-6 text-center">
+                  <span className="text-2xl opacity-50">🍽️</span>
+                  <p className="mt-3 text-sm text-zinc-400">
+                    Aún no hay registros. Registra tu primera comida de hoy.
+                  </p>
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </main>
     </div>

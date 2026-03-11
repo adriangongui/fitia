@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req: Request) {
   try {
-    const { messages, userId } = await req.json();
+    const { messages, userId, conversationId } = await req.json();
 
     const systemPrompt =
       "Eres una nutricionista deportiva experta llamada FitIA. Hablas en español, eres cercana y profesional. Conoces en profundidad nutrición deportiva, suplementación, planificación de entrenamientos y competiciones. Das consejos personalizados, precisos y basados en evidencia científica. No incentivas el consumo de suplementos innecesarios. Respondes preguntas sobre dieta, macros, timing nutricional, hidratación y rendimiento deportivo.";
@@ -47,11 +47,13 @@ export async function POST(req: Request) {
         await supabase.from("mensajes_chat").insert([
           {
             user_id: userId,
+            conversation_id: conversationId,
             role: "user",
             content: userMessage.content,
           },
           {
             user_id: userId,
+            conversation_id: conversationId,
             role: "assistant",
             content: reply,
           }
@@ -61,7 +63,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, conversationId });
   } catch (error) {
     console.error("Error en chat API:", error);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
