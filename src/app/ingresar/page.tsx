@@ -40,6 +40,7 @@ export default function IngresarPage() {
   const [descripcionComida, setDescripcionComida] = useState("");
   const [guardandoTexto, setGuardandoTexto] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [gramos, setGramos] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -162,7 +163,7 @@ export default function IngresarPage() {
       const res = await fetch("/api/analizar-foto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64 }),
+        body: JSON.stringify({ imageBase64, gramos: gramos.trim() || undefined }),
       });
 
       const payload = await res.json().catch(() => null);
@@ -280,6 +281,7 @@ export default function IngresarPage() {
       setAnalisisSesion((prev) => [registro, ...prev]);
       setUltimoResultado(registro);
       setDescripcionComida("");
+      setGramos("");
       setGuardandoTexto(false);
     } catch (error) {
       console.error(error);
@@ -414,9 +416,24 @@ export default function IngresarPage() {
                     )}
                   </div>
 
+                  {previewUrl && (
+                    <div className="mt-3 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-3">
+                      <label className="mb-1 block text-xs font-medium text-zinc-400">
+                        ¿Cuántos gramos aproximadamente?
+                      </label>
+                      <input
+                        type="number"
+                        value={gramos}
+                        onChange={(e) => setGramos(e.target.value)}
+                        placeholder="Ej: 250"
+                        className="w-full rounded-xl border border-zinc-800/80 bg-black/40 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-[#b6f542]/70"
+                      />
+                    </div>
+                  )}
+
                   <button
                     onClick={handleAnalizar}
-                    disabled={!selectedFile || analizando}
+                    disabled={!selectedFile || analizando || (!!previewUrl && !gramos.trim())}
                     className="mt-3 flex w-full items-center justify-center rounded-full bg-[#b6f542] px-4 py-2.5 text-sm font-semibold text-black shadow-[0_0_35px_rgba(182,245,66,0.45)] transition hover:bg-[#c8ff62] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {analizando ? "Analizando tu plato..." : "Analizar con IA"}

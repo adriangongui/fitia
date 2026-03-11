@@ -59,6 +59,7 @@ export default function ChatPage() {
     // If this is the very first message of a new conversation, map it in the sidebar
     if (!conversationId) {
       setConversationId(activeConvId);
+      localStorage.setItem("fitia_chat_conversation_id", activeConvId);
       setConversations(prev => [{
         id: activeConvId,
         title: currentInput.split(" ").slice(0, 5).join(" ") + (currentInput.split(" ").length > 5 ? "..." : ""),
@@ -128,6 +129,8 @@ export default function ChatPage() {
         setNombre(perfil.nombre);
       }
 
+      const savedConvId = localStorage.getItem("fitia_chat_conversation_id");
+
       // Cargar panel lateral de conversaciones ("Historial") buscando el primer mensaje por conversation_id
       const { data: convData } = await supabase
         .from("mensajes_chat")
@@ -159,7 +162,10 @@ export default function ChatPage() {
 
         // Load most recent active conversation automatically
         if (loadedConversations.length > 0) {
-          await loadConversation(loadedConversations[0].id);
+          const targetId = savedConvId && loadedConversations.some(c => c.id === savedConvId)
+                           ? savedConvId 
+                           : loadedConversations[0].id;
+          await loadConversation(targetId);
         }
       }
 
@@ -172,6 +178,7 @@ export default function ChatPage() {
   const loadConversation = async (id: string) => {
     // If it's already loading or we're creating a new one, handle here
     setConversationId(id);
+    localStorage.setItem("fitia_chat_conversation_id", id);
     setSidebarOpen(false); // Mobile UX
     
     const { data: historial } = await supabase
@@ -189,6 +196,7 @@ export default function ChatPage() {
 
   const createNewConversation = () => {
     setConversationId(null);
+    localStorage.removeItem("fitia_chat_conversation_id");
     setMessages([]);
     setSidebarOpen(false);
   };
@@ -221,32 +229,33 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden bg-black text-zinc-50 tracking-tight">
-      {/* Abstract Background - Deportes & Nutrición */}
+      {/* Abstract Background - Vibes Coloridas & Energía Deportiva */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Gradientes oscuros de fondo */}
+        {/* Gradientes más profundos de fondo */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#182a10_0%,#000000_70%)] opacity-80" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,#15200b_0%,#000000_50%)] opacity-60" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,#0a192f_0%,#000000_60%)] opacity-60" />
         
-        {/* Resplandores abstractos en #b6f542 */}
-        <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-[#b6f542]/5 blur-[120px] mix-blend-screen" />
-        <div className="absolute top-[40%] right-[10%] w-[30vw] h-[30vw] rounded-full bg-[#b6f542]/5 blur-[100px] mix-blend-screen" />
-        <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-[#b6f542]/5 blur-[150px] mix-blend-screen" />
+        {/* Resplandores abstractos coloridos */}
+        <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-[#b6f542]/10 blur-[130px] mix-blend-screen" />
+        <div className="absolute top-[30%] right-[5%] w-[40vw] h-[40vw] rounded-full bg-[#f97316]/10 blur-[120px] mix-blend-screen" />
+        <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-[#3b82f6]/10 blur-[150px] mix-blend-screen" />
 
         {/* Formas geométricas / Líneas de energía (SVG) */}
-        <svg className="absolute w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg">
           {/* Ondas sinuosas que representan fluidez y movimiento */}
-          <path d="M-100 150 C 300 300 600 0 1000 150 S 1600 300 2000 150" fill="none" stroke="rgba(182,245,66,0.15)" strokeWidth="1.5" />
-          <path d="M-100 200 C 400 350 700 50 1100 200 S 1700 350 2000 200" fill="none" stroke="rgba(182,245,66,0.1)" strokeWidth="1" />
+          <path d="M-100 150 C 300 300 600 0 1000 150 S 1600 300 2000 150" fill="none" stroke="rgba(182,245,66,0.2)" strokeWidth="1.5" />
+          <path d="M-100 200 C 400 350 700 50 1100 200 S 1700 350 2000 200" fill="none" stroke="rgba(59,130,246,0.15)" strokeWidth="1.5" />
+          <path d="M-100 250 C 500 400 800 100 1200 250 S 1800 400 2000 250" fill="none" stroke="rgba(249,115,22,0.15)" strokeWidth="1" />
           
           {/* Diagonales veloces (dinamismo, deporte) */}
-          <line x1="0%" y1="100%" x2="40%" y2="0%" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-          <line x1="20%" y1="100%" x2="60%" y2="0%" stroke="rgba(255,255,255,0.02)" strokeWidth="2" />
-          <line x1="60%" y1="100%" x2="100%" y2="0%" stroke="rgba(182,245,66,0.04)" strokeWidth="1" />
+          <line x1="0%" y1="100%" x2="40%" y2="0%" stroke="rgba(182,245,66,0.08)" strokeWidth="1.5" />
+          <line x1="20%" y1="100%" x2="60%" y2="0%" stroke="rgba(59,130,246,0.06)" strokeWidth="2" />
+          <line x1="60%" y1="100%" x2="100%" y2="0%" stroke="rgba(249,115,22,0.06)" strokeWidth="1" />
           
           {/* Círculos concéntricos (foco, precisión) */}
-          <circle cx="85%" cy="30%" r="200" stroke="rgba(182,245,66,0.05)" strokeWidth="1" fill="none" strokeDasharray="4 4" />
-          <circle cx="85%" cy="30%" r="300" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" fill="none" />
-          <circle cx="10%" cy="80%" r="400" stroke="rgba(182,245,66,0.03)" strokeWidth="1" fill="none" />
+          <circle cx="85%" cy="30%" r="200" stroke="rgba(249,115,22,0.08)" strokeWidth="1.5" fill="none" strokeDasharray="4 6" />
+          <circle cx="85%" cy="30%" r="300" stroke="rgba(59,130,246,0.05)" strokeWidth="1" fill="none" />
+          <circle cx="10%" cy="80%" r="400" stroke="rgba(182,245,66,0.05)" strokeWidth="1" fill="none" />
         </svg>
       </div>
       
@@ -262,12 +271,6 @@ export default function ChatPage() {
             </div>
 
             <nav className="hidden xl:flex items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 md:flex">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full border-r border-zinc-800/80 pr-3 mr-1 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100"
-              >
-                <span aria-hidden className="text-sm">📚</span> Historial
-              </button>
               <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">⬚</span> Dashboard
               </Link>
@@ -319,6 +322,15 @@ export default function ChatPage() {
           </div>
         </div>
       </header>
+
+      {/* BOTÓN FLOTANTE HISTORIAL */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-[90px] right-0 z-30 flex cursor-pointer items-center gap-2 rounded-l-2xl border border-r-0 border-zinc-700/80 bg-zinc-900/80 pl-4 py-3 pr-2 text-sm font-medium text-zinc-300 shadow-[0_0_20px_rgba(0,0,0,0.5)] backdrop-blur transition-all hover:bg-zinc-800 hover:text-white"
+        title="Historial de Conversaciones"
+      >
+        <span aria-hidden className="text-[1.2rem] text-[#b6f542]">📚</span>
+      </button>
 
       {/* OVERLAY & SIDEBAR HISTORIAL */}
       {sidebarOpen && (
