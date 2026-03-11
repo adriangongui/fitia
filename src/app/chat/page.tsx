@@ -268,6 +268,30 @@ export default function ChatPage() {
     setSidebarOpen(false);
   };
 
+  const deleteConversation = async (e: React.MouseEvent, idToDelete: string) => {
+    e.stopPropagation();
+    if (!confirm("¿Eliminar esta conversación?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("mensajes_chat")
+        .delete()
+        .eq("conversation_id", idToDelete)
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      setConversations(prev => prev.filter(c => c.id !== idToDelete));
+      
+      if (conversationId === idToDelete) {
+        createNewConversation();
+      }
+    } catch (error) {
+      console.error("Error al eliminar conversación:", error);
+      alert("No se pudo eliminar la conversación.");
+    }
+  };
+
   const nombreCorto = useMemo(() => {
     if (nombre) return nombre;
     const base = (email ?? "deportista").split("@")[0] ?? "deportista";
@@ -437,22 +461,30 @@ export default function ChatPage() {
           ) : (
             <div className="flex flex-col gap-1">
               {conversations.map(conv => (
-                <button
-                  key={conv.id}
-                  onClick={() => loadConversation(conv.id)}
-                  className={`flex flex-col items-start gap-1 w-full rounded-xl px-4 py-3 text-left transition ${
-                    conversationId === conv.id 
-                    ? "bg-zinc-900 border border-zinc-700/80 shadow-md" 
-                    : "hover:bg-zinc-900/50 hover:pl-5 text-zinc-400"
-                  }`}
-                >
-                  <span className={`text-sm font-medium line-clamp-1 ${conversationId === conv.id ? 'text-zinc-100' : ''}`}>
-                    {conv.title}
-                  </span>
-                  <span className="text-[10px] text-zinc-600">
-                    {new Date(conv.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </button>
+                <div key={conv.id} className="group relative">
+                  <button
+                    onClick={() => loadConversation(conv.id)}
+                    className={`flex flex-col items-start gap-1 w-full rounded-xl px-4 py-3 pr-10 text-left transition ${
+                      conversationId === conv.id 
+                      ? "bg-zinc-900 border border-zinc-700/80 shadow-md" 
+                      : "hover:bg-zinc-900/50 hover:pl-5 text-zinc-400"
+                    }`}
+                  >
+                    <span className={`text-sm font-medium line-clamp-1 ${conversationId === conv.id ? 'text-zinc-100' : ''}`}>
+                      {conv.title}
+                    </span>
+                    <span className="text-[10px] text-zinc-600">
+                      {new Date(conv.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </button>
+                  <button
+                    onClick={(e) => deleteConversation(e, conv.id)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity rounded-md hover:bg-red-400/10"
+                    title="Eliminar conversación"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                  </button>
+                </div>
               ))}
             </div>
           )}
