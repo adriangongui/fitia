@@ -68,6 +68,16 @@ export default function ChatPage() {
     }
 
     try {
+      // Guardar mensaje del usuario en base de datos
+      const userMessageData = {
+        user_id: userId,
+        conversation_id: activeConvId,
+        role: "user",
+        content: currentInput,
+      };
+      console.log("Guardando mensaje:", userMessageData);
+      await supabase.from("mensajes_chat").insert([userMessageData]);
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +97,17 @@ export default function ChatPage() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Guardar respuesta del asistente en la base de datos
+      const assistantMessageData = {
+        user_id: userId,
+        conversation_id: activeConvId,
+        role: "assistant",
+        content: assistantMessage.content,
+      };
+      console.log("Guardando mensaje:", assistantMessageData);
+      await supabase.from("mensajes_chat").insert([assistantMessageData]);
+
     } catch (error) {
       console.error(error);
       alert("Error al enviar el mensaje. Inténtalo de nuevo.");

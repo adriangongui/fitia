@@ -38,31 +38,6 @@ export async function POST(req: Request) {
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || "";
 
-    // Guardar en Supabase si hay userId
-    if (userId) {
-      const userMessage = messages[messages.length - 1];
-      
-      // Intentar guardar ambos mensajes sin bloquear la respuesta al usuario fuertemente
-      try {
-        await supabase.from("mensajes_chat").insert([
-          {
-            user_id: userId,
-            conversation_id: conversationId,
-            role: "user",
-            content: userMessage.content,
-          },
-          {
-            user_id: userId,
-            conversation_id: conversationId,
-            role: "assistant",
-            content: reply,
-          }
-        ]);
-      } catch (err) {
-        console.error("Error guardando en supabase:", err);
-      }
-    }
-
     return NextResponse.json({ reply, conversationId });
   } catch (error) {
     console.error("Error en chat API:", error);
