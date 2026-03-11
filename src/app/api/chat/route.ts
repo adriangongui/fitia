@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { buscarContextoRelevante } from "@/lib/buscarContexto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -25,6 +26,15 @@ export async function POST(req: Request) {
     if (isTitleRequest) {
       systemPrompt = "Eres un asistente automático. Tu único trabajo es resumir el tema de la conversación en un título extremadamente corto (máximo 5 palabras). No uses comillas, ni puntos finales, ni texto introductorio.";
     } else {
+      // Determinar la última pregunta del usuario para buscar contexto
+      const userQuestions = messages.filter((m: any) => m.role === "user");
+      const lastUserQuestion = userQuestions.length > 0 ? userQuestions[userQuestions.length - 1].content : "";
+      
+      let contextoAdicional = "";
+      if (lastUserQuestion) {
+        contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
+      }
+
       systemPrompt = `Eres una nutricionista deportiva experta llamada FitIA. REGLAS IMPORTANTES:
 - Adapta la longitud de tu respuesta a la complejidad de la pregunta:
   * Preguntas simples (qué es X, cuánto tomar...): 2-3 líneas máximo
@@ -35,8 +45,11 @@ export async function POST(req: Request) {
 - Usa párrafos cortos, nunca bloques de texto densos
 - Responde en español siempre
 
-Basa tus consejos especialmente en este conocimiento:
-${CONOCIMIENTO_NUTRICIONAL}`;
+Basa tus consejos especialmente en este conocimiento base:
+${CONOCIMIENTO_NUTRICIONAL}
+
+${contextoAdicional ? `También, basa tu respuesta en esta información científica verificada extraída de nuestros documentos:\n${contextoAdicional}\n` : ""}
+`;
     }
 
     const groqMessages = [
