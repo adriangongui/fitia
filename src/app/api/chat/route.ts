@@ -5,12 +5,38 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const CONOCIMIENTO_NUTRICIONAL = `
+[CONOCIMIENTO NUTRICIONAL BASE]
+- Proteínas: 1.6-2.2g por kg de peso corporal para deportistas.
+- Carbohidratos: fuente principal de energía en deportes de resistencia.
+- Grasas saludables: mínimo 20% de las calorías totales.
+- Timing nutricional: consumir proteína (post-entreno) en 30-60 minutos de la ventana anabólica.
+- Creatina: único suplemento con evidencia científica sólida para fuerza y potencia.
+- Cafeína: mejora el rendimiento tomando 3-6mg por kg de peso corporal.
+// === AÑADIR MÁS INFORMACIÓN AQUÍ === //
+`;
+
 export async function POST(req: Request) {
   try {
-    const { messages, userId, conversationId } = await req.json();
+    const { messages, userId, conversationId, isTitleRequest } = await req.json();
 
-    const systemPrompt =
-      "Eres una nutricionista deportiva experta llamada FitIA. Hablas en español, eres cercana y profesional. Conoces en profundidad nutrición deportiva, suplementación, planificación de entrenamientos y competiciones. Das consejos personalizados, precisos y basados en evidencia científica. No incentivas el consumo de suplementos innecesarios. Respondes preguntas sobre dieta, macros, timing nutricional, hidratación y rendimiento deportivo.";
+    let systemPrompt = "";
+
+    if (isTitleRequest) {
+      systemPrompt = "Eres un asistente automático. Tu único trabajo es resumir el tema de la conversación en un título extremadamente corto (máximo 5 palabras). No uses comillas, ni puntos finales, ni texto introductorio.";
+    } else {
+      systemPrompt = `Eres una nutricionista deportiva experta llamada FitIA. REGLAS IMPORTANTES:
+- Responde SIEMPRE en máximo 3-4 líneas cortas
+- Sé conversacional y cercana, como una amiga experta
+- Al final de cada respuesta haz UNA pregunta corta para continuar la conversación
+- Si necesitas dar mucha información, divídela en partes y pregunta si quiere saber más
+- Nunca escribas listas largas ni párrafos largos
+- Usa un tono cercano y motivador
+- Responde en español siempre
+
+Basa tus consejos especialmente en este conocimiento:
+${CONOCIMIENTO_NUTRICIONAL}`;
+    }
 
     const groqMessages = [
       { role: "system", content: systemPrompt },

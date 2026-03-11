@@ -62,9 +62,23 @@ export default function ChatPage() {
       localStorage.setItem("fitia_chat_conversation_id", activeConvId);
       setConversations(prev => [{
         id: activeConvId,
-        title: currentInput.split(" ").slice(0, 5).join(" ") + (currentInput.split(" ").length > 5 ? "..." : ""),
+        title: "Generando título...",
         created_at: new Date().toISOString()
       }, ...prev]);
+
+      // Async title generation for the first message
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: user: ${currentInput}` }],
+          isTitleRequest: true,
+        }),
+      }).then(res => res.json()).then(data => {
+         if (data.reply) {
+           setConversations(prev => prev.map(c => c.id === activeConvId ? { ...c, title: data.reply } : c));
+         }
+      }).catch(console.error);
     }
 
     try {
@@ -155,31 +169,63 @@ export default function ChatPage() {
       // Cargar panel lateral de conversaciones ("Historial") buscando el primer mensaje por conversation_id
       const { data: convData } = await supabase
         .from("mensajes_chat")
-        .select("conversation_id, content, created_at")
+        .select("conversation_id, content, created_at, role")
         .eq("user_id", user.id)
-        .eq("role", "user")
-        .order("created_at", { ascending: true }); // We group manually because Supabase doesn't easily allow distinct on complex orderings
+        .order("created_at", { ascending: true }); 
 
       if (convData && convData.length > 0) {
-        // Group by conversation_id to get first message (title) per conversation
-        const convosMap = new Map<string, Conversation>();
+        // Group by conversation_id to get messages
+        const convosMap = new Map<string, { id: string; created_at: string; messages: any[] }>();
         for (const msg of convData) {
-          if (msg.conversation_id && !convosMap.has(msg.conversation_id)) {
-            const words = msg.content.split(" ").slice(0, 5).join(" ");
-            convosMap.set(msg.conversation_id, {
-              id: msg.conversation_id,
-              title: words + (msg.content.split(" ").length > 5 ? "..." : ""),
-              created_at: msg.created_at
-            });
+          if (msg.conversation_id) {
+            if (!convosMap.has(msg.conversation_id)) {
+              convosMap.set(msg.conversation_id, {
+                id: msg.conversation_id,
+                created_at: msg.created_at,
+                messages: []
+              });
+            }
+            convosMap.get(msg.conversation_id)!.messages.push(msg);
           }
         }
         
         // Convert map back to array and order nicely DESC
-        const loadedConversations = Array.from(convosMap.values()).sort((a,b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        const loadedConversations = Array.from(convosMap.values())
+          .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .map(c => ({
+            id: c.id,
+            title: "Cargando título...", // Placeholder
+            created_at: c.created_at,
+            _rawMessages: c.messages.slice(0, 3) // Store first 3 context messages
+          }));
         
         setConversations(loadedConversations);
+
+        // Fetch titles asynchronously for those that have messages
+        loadedConversations.forEach(async (conv) => {
+          if (conv._rawMessages.length === 0) {
+            setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: "Nueva Conversación" } : c));
+            return;
+          }
+
+          try {
+            const promptContext = conv._rawMessages.map((m: any) => `${m.role}: ${m.content}`).join(" | ");
+            const res = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: ${promptContext}` }],
+                isTitleRequest: true,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: data.reply || "Chat FitIA" } : c));
+            }
+          } catch (e) {
+            setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: "Chat FitIA" } : c));
+          }
+        });
 
         // Load most recent active conversation automatically
         if (loadedConversations.length > 0) {
