@@ -118,6 +118,7 @@ export default function DashboardPage() {
   const [objetivosPersonales, setObjetivosPersonales] = useState({ kcal: 2400, p: 160, c: 260, g: 75 });
   const [objetivoLabel, setObjetivoLabel] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -355,10 +356,60 @@ export default function DashboardPage() {
               <Link href="/entrenamiento" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
               </Link>
-              <Link href="/suplementos" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">💊</span> Suplementos
-              </Link>
+              
+              {/* Menú Más */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100"
+                >
+                  Más
+                  <span className={`text-xs transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+                
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50">
+                    <Link href="/suplementos" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                      <span aria-hidden className="text-sm mr-2">💊</span> Suplementos
+                    </Link>
+                    <Link href="/historial" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                      <span aria-hidden className="text-sm mr-2">📊</span> Historial
+                    </Link>
+                  </div>
+                )}
+              </div>
             </nav>
+            
+            {/* Menú móvil hamburguesa */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100 sm:hidden"
+            >
+              <span className="text-lg">☰</span>
+            </button>
+            
+            {mobileMenuOpen && (
+              <div className="absolute top-full left-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50 sm:hidden">
+                <Link href="/dashboard" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-100 bg-zinc-900/50">
+                  <span aria-hidden className="text-sm mr-2">⬚</span> Dashboard
+                </Link>
+                <Link href="/chat" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                  <span aria-hidden className="text-sm mr-2">✦</span> Chat Asistente
+                </Link>
+                <Link href="/ingresar" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                  <span aria-hidden className="text-sm mr-2">➕</span> Ingresar Comida
+                </Link>
+                <Link href="/entrenamiento" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                  <span aria-hidden className="text-sm mr-2">🏋️</span> Entrenamiento
+                </Link>
+                <Link href="/suplementos" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                  <span aria-hidden className="text-sm mr-2">💊</span> Suplementos
+                </Link>
+                <Link href="/historial" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                  <span aria-hidden className="text-sm mr-2">📊</span> Historial
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

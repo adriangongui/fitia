@@ -35,6 +35,13 @@ export async function POST(req: Request) {
         contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
       }
 
+      // Obtener perfil del usuario
+      const { data: perfil, error: errorPerfil } = await supabase
+        .from("perfiles")
+        .select("peso, altura, edad, sexo, actividad, objetivo, nombre, deporte")
+        .eq("user_id", userId)
+        .single();
+
       // Obtener contexto del día si hay userId
       let contextoDia = "";
       if (userId) {
@@ -45,7 +52,7 @@ export async function POST(req: Request) {
           // Obtener comidas de hoy
           const { data: comidasHoy, error: errorComidas } = await supabase
             .from("analisis")
-            .select("nombre_plato, calorias, proteinas, carbohidratos, grasas, created_at")
+            .select("nombre_plato, calorias, proteinas, carbohidratos, grasas")
             .eq("user_id", userId)
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
@@ -61,7 +68,7 @@ export async function POST(req: Request) {
           // Obtener suplementos activos
           const { data: suplementosActivos, error: errorSuplementos } = await supabase
             .from("suplementos")
-            .select("nombre, dosis, momento")
+            .select("nombre, dosis, momento, notas")
             .eq("user_id", userId)
             .eq("activo", true)
             .order("created_at", { ascending: false });
@@ -101,8 +108,10 @@ export async function POST(req: Request) {
 
           if (!errorSuplementos && suplementosActivos && suplementosActivos.length > 0) {
             suplementosTexto = suplementosActivos.map(s => 
-              `• ${s.nombre} (${s.dosis}) - ${s.momento}`
+              `• ${s.nombre} (${s.dosis}) - ${s.momento}${s.notas ? ` - Notas: ${s.notas}` : ''}`
             ).join('\n');
+          } else {
+            suplementosTexto = "El usuario no tiene suplementos registrados";
           }
 
           if (comidasTexto || entrenamientosTexto || suplementosTexto) {
@@ -118,8 +127,10 @@ ${entrenamientosTexto || 'Ninguno'}
 Recomendaciones nutricionales recibidas hoy:
 ${recomendacionesTexto || 'Ninguna'}
 
-Suplementos activos del usuario:
-${suplementosTexto || 'Ninguno'}
+Suplementos activos:
+${suplementosTexto}
+
+Deporte del usuario: ${perfil?.deporte || 'No especificado'}
 
 Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
           }

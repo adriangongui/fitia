@@ -96,6 +96,7 @@ export default function PerfilPage() {
           sexo,
           actividad,
           objetivo,
+          deporte: deporte === "otro" ? otroDeporte : deporte,
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id" });
 
