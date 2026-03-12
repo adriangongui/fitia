@@ -17,6 +17,17 @@ type AnalisisComida = {
   confianza?: number;
 };
 
+type Entrenamiento = {
+  id: string;
+  tipo: string;
+  duracion: number;
+  intensidad: string;
+  notas: string | null;
+  calorias_quemadas: number;
+  proteinas_extra: number;
+  created_at: string;
+};
+
 type Objetivo = "ganar_musculo" | "perder_grasa" | "mantenimiento";
 
 function clamp01(n: number) {
@@ -101,6 +112,7 @@ export default function DashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
 
   const [analisisSesion, setAnalisisSesion] = useState<AnalisisComida[]>([]);
+  const [entrenamientosSesion, setEntrenamientosSesion] = useState<Entrenamiento[]>([]);
 
   const [objetivosPersonales, setObjetivosPersonales] = useState({ kcal: 2400, p: 160, c: 260, g: 75 });
   const [objetivoLabel, setObjetivoLabel] = useState<string>("");
@@ -186,6 +198,20 @@ export default function DashboardPage() {
         setAnalisisSesion(historico);
       }
 
+      // Cargar entrenamientos de hoy
+      const { data: entrenamientos, error: errorEntrenamientos } = await supabase
+        .from("entrenamientos")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("created_at", startOfToday.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (errorEntrenamientos) {
+        console.error("Error cargando entrenamientos de hoy:", errorEntrenamientos);
+      } else if (entrenamientos) {
+        setEntrenamientosSesion(entrenamientos);
+      }
+
       setLoadingUser(false);
     };
 
@@ -193,7 +219,7 @@ export default function DashboardPage() {
   }, [router]);
 
   const resumenDiario = useMemo(() => {
-    return analisisSesion.reduce(
+    const resumenComidas = analisisSesion.reduce(
       (acc, item) => {
         acc.calorias += item.calorias;
         acc.proteinas += item.proteinas;
@@ -203,7 +229,17 @@ export default function DashboardPage() {
       },
       { calorias: 0, proteinas: 0, carbohidratos: 0, grasas: 0 }
     );
-  }, [analisisSesion]);
+
+    const proteinasExtraEntrenamiento = entrenamientosSesion.reduce(
+      (acc, item) => acc + (item.proteinas_extra || 0),
+      0
+    );
+
+    return {
+      ...resumenComidas,
+      proteinas: resumenComidas.proteinas + proteinasExtraEntrenamiento
+    };
+  }, [analisisSesion, entrenamientosSesion]);
 
   const nombreCorto = useMemo(() => {
     const base = (email ?? "deportista").split("@")[0] ?? "deportista";
@@ -262,6 +298,9 @@ export default function DashboardPage() {
               </Link>
               <Link href="/ingresar" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">➕</span> Ingresar Comida
+              </Link>
+              <Link href="/entrenamiento" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
+                <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
               </Link>
             </nav>
           </div>
@@ -382,6 +421,45 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* TARJETA DE PROTEÍNAS EXTRA DE ENTRENAMIENTO */}
+              {entrenamientosSesion.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-[#b6f542]/50 bg-[#b6f542]/5 p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#b6f542]/20">
+                      <span className="text-sm text-[#b6f542]">💪</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-zinc-50">Ajuste por entrenamiento</h3>
+                  </div>
+                  
+                  <div className="text-sm text-zinc-200 leading-relaxed">
+                    {(() => {
+                      const proteinasExtra = entrenamientosSesion.reduce(
+                        (acc, item) => acc + (item.proteinas_extra || 0),
+                        0
+                      );
+                      const caloriasQuemadas = entrenamientosSesion.reduce(
+                        (acc, item) => acc + item.calorias_quemadas,
+                        0
+                      );
+                      const sesionesCount = entrenamientosSesion.length;
+                      
+                      return (
+                        <div>
+                          <p className="mb-2">
+                            💪 <span className="font-semibold text-[#b6f542]">+{formatNumber(proteinasExtra)}g proteína</span> y nutrientes extra por tu{sesionesCount === 1 ? ' entrenamiento' : 's entrenamientos'} de hoy
+                          </p>
+                          {caloriasQuemadas > 0 && (
+                            <p className="text-xs text-zinc-400">
+                              🔥 Quemaste {formatNumber(caloriasQuemadas)} kcal en total
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </div>

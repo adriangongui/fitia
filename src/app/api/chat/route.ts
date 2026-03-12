@@ -35,6 +35,49 @@ export async function POST(req: Request) {
         contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
       }
 
+      // Obtener contexto del día si hay userId
+      let contextoDia = "";
+      if (userId) {
+        try {
+          const startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
+
+          // Obtener comidas de hoy
+          const { data: comidasHoy, error: errorComidas } = await supabase
+            .from("analisis")
+            .select("nombre_plato, calorias, proteinas, carbohidratos, grasas, created_at")
+            .eq("user_id", userId)
+            .gte("created_at", startOfToday.toISOString())
+            .order("created_at", { ascending: false });
+
+          // Obtener entrenamientos de hoy
+          const { data: entrenamientosHoy, error: errorEntrenamientos } = await supabase
+            .from("entrenamientos")
+            .select("tipo, duracion, intensidad, calorias_quemadas, proteinas_extra, created_at")
+            .eq("user_id", userId)
+            .gte("created_at", startOfToday.toISOString())
+            .order("created_at", { ascending: false });
+
+          if (!errorComidas && comidasHoy && comidasHoy.length > 0) {
+            contextoDia += `Ha comido hoy: ${comidasHoy.map(c => 
+              `${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g prot)`
+            ).join(', ')}. `;
+          }
+
+          if (!errorEntrenamientos && entrenamientosHoy && entrenamientosHoy.length > 0) {
+            contextoDia += `Ha entrenado hoy: ${entrenamientosHoy.map(e => 
+              `${e.tipo} ${e.intensidad.toLowerCase()} ${e.duracion}min (${e.calorias_quemadas}kcal quemadas)`
+            ).join(', ')}. `;
+          }
+
+          if (contextoDia) {
+            contextoDia = `\n\nContexto del usuario hoy: ${contextoDia}`;
+          }
+        } catch (error) {
+          console.error("Error obteniendo contexto del día:", error);
+        }
+      }
+
       systemPrompt = `Eres una nutricionista deportiva experta llamada FitIA. REGLAS IMPORTANTES:
 - Adapta la longitud de tu respuesta a la complejidad de la pregunta:
   * Preguntas simples (qué es X, cuánto tomar...): 2-3 líneas máximo
@@ -48,8 +91,10 @@ export async function POST(req: Request) {
 Basa tus consejos especialmente en este conocimiento base:
 ${CONOCIMIENTO_NUTRICIONAL}
 
-${contextoAdicional ? `También, basa tu respuesta en esta información científica verificada extraída de nuestros documentos:\n${contextoAdicional}\n` : ""}
-`;
+Contexto adicional relevante:
+${contextoAdicional}${contextoDia}
+
+Usa toda esta información para dar respuestas personalizadas y contextualizadas.`;
     }
 
     const groqMessages = [

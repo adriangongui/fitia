@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-const pdfParse = require("pdf-parse");
+import { extractText } from "unpdf";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -27,6 +27,7 @@ function splitIntoChunks(text: string): string[] {
 }
 
 export async function POST(req: Request) {
+  console.log("Recibiendo PDF...");
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -40,12 +41,10 @@ export async function POST(req: Request) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    // Parsear PDF
-    const data = await pdfParse(buffer);
-    const text = data.text;
-    
+    // Parsear PDF con unpdf
+    const { text } = await extractText(new Uint8Array(arrayBuffer), { mergePages: true });
+
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ error: "No se pudo extraer texto del PDF" }, { status: 400 });
     }
@@ -83,8 +82,8 @@ export async function POST(req: Request) {
       fragmentos: totalInsertados 
     });
 
-  } catch (error) {
-    console.error("Error en procesar-pdf:", error);
-    return NextResponse.json({ error: "Error interno procesando el PDF" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error completo:", error);
+    return NextResponse.json({ error: error?.message || "Error interno procesando el PDF" }, { status: 500 });
   }
 }
