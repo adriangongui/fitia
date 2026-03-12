@@ -58,9 +58,18 @@ export async function POST(req: Request) {
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
 
+          // Obtener suplementos activos
+          const { data: suplementosActivos, error: errorSuplementos } = await supabase
+            .from("suplementos")
+            .select("nombre, dosis, momento")
+            .eq("user_id", userId)
+            .eq("activo", true)
+            .order("created_at", { ascending: false });
+
           let comidasTexto = "";
           let entrenamientosTexto = "";
           let recomendacionesTexto = "";
+          let suplementosTexto = "";
 
           if (!errorComidas && comidasHoy && comidasHoy.length > 0) {
             comidasTexto = comidasHoy.map(c => 
@@ -90,7 +99,13 @@ export async function POST(req: Request) {
               .join('\n');
           }
 
-          if (comidasTexto || entrenamientosTexto) {
+          if (!errorSuplementos && suplementosActivos && suplementosActivos.length > 0) {
+            suplementosTexto = suplementosActivos.map(s => 
+              `• ${s.nombre} (${s.dosis}) - ${s.momento}`
+            ).join('\n');
+          }
+
+          if (comidasTexto || entrenamientosTexto || suplementosTexto) {
             contextoDia = `
 
 === CONTEXTO DE HOY DEL USUARIO ===
@@ -103,7 +118,10 @@ ${entrenamientosTexto || 'Ninguno'}
 Recomendaciones nutricionales recibidas hoy:
 ${recomendacionesTexto || 'Ninguna'}
 
-Usa esta información cuando el usuario pregunte sobre su día, su dieta o su entrenamiento.`;
+Suplementos activos del usuario:
+${suplementosTexto || 'Ninguno'}
+
+Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
           }
         } catch (error) {
           console.error("Error obteniendo contexto del día:", error);

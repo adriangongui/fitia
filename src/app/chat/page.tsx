@@ -361,7 +361,7 @@ export default function ChatPage() {
               <span className="text-lg font-semibold tracking-tight hidden sm:inline-block">FitIA</span>
             </div>
 
-            <nav className="hidden xl:flex items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 md:flex">
+            <nav className="hidden items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 sm:flex">
               <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">⬚</span> Dashboard
               </Link>
@@ -374,6 +374,9 @@ export default function ChatPage() {
               <Link href="/entrenamiento" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
               </Link>
+              <Link href="/suplementos" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
+                <span aria-hidden className="text-sm">💊</span> Suplementos
+              </Link>
             </nav>
             {/* Nav Móvil minimizado */}
             <nav className="flex items-center gap-1 xl:hidden md:hidden">
@@ -381,6 +384,7 @@ export default function ChatPage() {
               <Link href="/chat" className="p-2 text-[#b6f542]">✦</Link>
               <Link href="/ingresar" className="p-2 text-zinc-400 hover:text-zinc-100">➕</Link>
               <Link href="/entrenamiento" className="p-2 text-zinc-400 hover:text-zinc-100">🏋️</Link>
+              <Link href="/suplementos" className="p-2 text-zinc-400 hover:text-zinc-100">💊</Link>
             </nav>
           </div>
 

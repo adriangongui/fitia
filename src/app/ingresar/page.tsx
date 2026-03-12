@@ -324,6 +324,9 @@ export default function IngresarPage() {
               <Link href="/entrenamiento" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
                 <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
               </Link>
+              <Link href="/suplementos" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
+                <span aria-hidden className="text-sm">💊</span> Suplementos
+              </Link>
             </nav>
           </div>
 
