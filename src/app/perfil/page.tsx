@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 type Sexo = "hombre" | "mujer";
 type Actividad = "sedentario" | "moderado" | "activo" | "muy_activo";
 type Objetivo = "ganar_musculo" | "perder_grasa" | "mantenimiento";
+type Deporte = "ninguno" | "futbol" | "baloncesto" | "natacion" | "ciclismo" | "running" | "crossfit" | "gimnasio" | "artes_marciales" | "otro";
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export default function PerfilPage() {
   const [sexo, setSexo] = useState<Sexo | null>(null);
   const [actividad, setActividad] = useState<Actividad | null>(null);
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
+  const [deporte, setDeporte] = useState<Deporte | null>(null);
+  const [otroDeporte, setOtroDeporte] = useState<string>("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -55,6 +58,16 @@ export default function PerfilPage() {
         setSexo(data.sexo as Sexo);
         setActividad(data.actividad as Actividad);
         setObjetivo(data.objetivo as Objetivo);
+        
+        // Manejar el campo deporte
+        if (data.deporte) {
+          if (["futbol", "baloncesto", "natacion", "ciclismo", "running", "crossfit", "gimnasio", "artes_marciales"].includes(data.deporte)) {
+            setDeporte(data.deporte as Deporte);
+          } else {
+            setDeporte("otro");
+            setOtroDeporte(data.deporte);
+          }
+        }
       } else {
         router.replace("/onboarding");
       }
@@ -264,6 +277,40 @@ export default function PerfilPage() {
                 <option value="ganar_musculo">Ganar Músculo (Superávit calórico)</option>
               </select>
             </div>
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Deporte
+              </label>
+              <select
+                value={deporte ?? ""}
+                onChange={(e) => setDeporte(e.target.value as Deporte)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black/40 px-4 py-3.5 text-sm text-zinc-100 outline-none transition focus:border-[#b6f542]/70 focus:ring-1 focus:ring-[#b6f542]/70"
+              >
+                <option value="ninguno">Ninguno</option>
+                <option value="futbol">Fútbol</option>
+                <option value="baloncesto">Baloncesto</option>
+                <option value="natacion">Natación</option>
+                <option value="ciclismo">Ciclismo</option>
+                <option value="running">Running</option>
+                <option value="crossfit">Crossfit</option>
+                <option value="gimnasio">Gimnasio/Musculación</option>
+                <option value="artes_marciales">Artes marciales</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            {deporte === "otro" && (
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  ¿Cuál deporte practicas?
+                </label>
+                <input 
+                  type="text" 
+                  value={otroDeporte}
+                  onChange={(e) => setOtroDeporte(e.target.value)}
+                  className="w-full rounded-2xl border border-zinc-800 bg-black/40 px-4 py-3.5 text-sm text-zinc-100 outline-none transition focus:border-[#b6f542]/70 focus:ring-1 focus:ring-[#b6f542]/70"
+                />
+              </div>
+            )}
             </div>
 
             <div className="mt-8 flex w-full flex-col sm:flex-row justify-end gap-4">

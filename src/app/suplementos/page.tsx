@@ -69,6 +69,9 @@ export default function Suplementos() {
   // Suplementos state
   const [suplementos, setSuplementos] = useState<Suplemento[]>([]);
   const [loadingSuplementos, setLoadingSuplementos] = useState(true);
+  
+  // Acordeón state
+  const [expandedSuplements, setExpandedSuplements] = useState<Set<string>>(new Set());
 
   const nombreCorto = useMemo(() => {
     const base = (email ?? "deportista").split("@")[0] ?? "deportista";
@@ -224,6 +227,18 @@ export default function Suplementos() {
       }
     }
     return null;
+  };
+
+  const toggleSuplementoInfo = (key: string) => {
+    setExpandedSuplements(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
   };
 
   if (loadingUser) {
@@ -474,17 +489,44 @@ export default function Suplementos() {
               <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-6">
                 <h2 className="text-lg font-semibold text-zinc-50 mb-4">Guía de Suplementos</h2>
                 
-                <div className="space-y-4">
-                  {Object.entries(infoSuplementos).map(([key, info]) => (
-                    <div key={key} className="p-4 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
-                      <h3 className="font-medium text-[#b6f542] capitalize mb-2">{key}</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-zinc-400">Evidencia:</span> <span className="text-zinc-300">{info.evidencia}</span></p>
-                        <p><span className="text-zinc-400">Dosis:</span> <span className="text-zinc-300">{info.dosis}</span></p>
-                        <p><span className="text-zinc-400">Beneficios:</span> <span className="text-zinc-300">{info.beneficios}</span></p>
+                <div className="space-y-2">
+                  {Object.entries(infoSuplementos).map(([key, info]) => {
+                    const isExpanded = expandedSuplements.has(key);
+                    return (
+                      <div key={key} className="rounded-lg border border-zinc-800/50 overflow-hidden">
+                        <button
+                          onClick={() => toggleSuplementoInfo(key)}
+                          className="w-full flex items-center justify-between p-4 text-left transition hover:bg-zinc-800/30"
+                        >
+                          <h3 className="font-medium text-[#b6f542] capitalize">{key}</h3>
+                          <span className="text-[#b6f542] transition-transform duration-200" style={{
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                          }}>
+                            ▼
+                          </span>
+                        </button>
+                        
+                        {isExpanded && (
+                          <div className="p-4 bg-zinc-900/30 border-t border-zinc-800/50">
+                            <div className="space-y-3 text-sm">
+                              <div>
+                                <span className="text-zinc-400 font-medium">Evidencia:</span>
+                                <p className="text-zinc-300 mt-1">{info.evidencia}</p>
+                              </div>
+                              <div>
+                                <span className="text-zinc-400 font-medium">Dosis recomendada:</span>
+                                <p className="text-zinc-300 mt-1">{info.dosis}</p>
+                              </div>
+                              <div>
+                                <span className="text-zinc-400 font-medium">Beneficios:</span>
+                                <p className="text-zinc-300 mt-1">{info.beneficios}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 type Sexo = "hombre" | "mujer";
 type Actividad = "sedentario" | "moderado" | "activo" | "muy_activo";
 type Objetivo = "ganar_musculo" | "perder_grasa" | "mantenimiento";
+type Deporte = "ninguno" | "futbol" | "baloncesto" | "natacion" | "ciclismo" | "running" | "crossfit" | "gimnasio" | "artes_marciales" | "otro";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function OnboardingPage() {
   const [sexo, setSexo] = useState<Sexo | null>(null);
   const [actividad, setActividad] = useState<Actividad | null>(null);
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
+  const [deporte, setDeporte] = useState<Deporte | null>(null);
+  const [otroDeporte, setOtroDeporte] = useState<string>("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -52,8 +55,13 @@ export default function OnboardingPage() {
     checkAuth();
   }, [router]);
 
-  const handleNext = () => setStep((s) => s + 1);
-  const handlePrev = () => setStep((s) => Math.max(1, s - 1));
+  const handleNext = () => {
+    if (step < 5) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
 
   const handleFinish = async () => {
     if (!userId || saving) return;
@@ -68,6 +76,7 @@ export default function OnboardingPage() {
         sexo,
         actividad,
         objetivo,
+        deporte: deporte === "otro" ? otroDeporte : deporte,
       });
 
       if (error) throw error;
@@ -261,45 +270,26 @@ export default function OnboardingPage() {
             <div className="animate-in fade-in zoom-in-95 duration-300 slide-in-from-right-4">
               <h2 className="text-2xl font-semibold">Tu Objetivo</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                ¿Qué meta quieres lograr con FitIA?
+                ¿Qué quieres lograr con tu plan nutricional?
               </p>
-              <div className="mt-8 grid gap-3">
+
+              <div className="mt-8 space-y-4">
                 {[
-                  {
-                    id: "perder_grasa",
-                    label: "🔥 Perder grasa",
-                    desc: "Déficit calórico para definir y perder peso.",
-                  },
-                  {
-                    id: "mantenimiento",
-                    label: "⚖️ Mantenimiento",
-                    desc: "Mantener peso actual e ir mejorando composición.",
-                  },
-                  {
-                    id: "ganar_musculo",
-                    label: "💪 Ganar músculo",
-                    desc: "Superávit calórico para construir fuerza y masa.",
-                  },
-                ].map((item) => (
+                  { id: "ganar_musculo", label: "💪 Ganar músculo", desc: "Aumentar masa muscular y fuerza" },
+                  { id: "perder_grasa", label: "🔥 Perder grasa", desc: "Reducir porcentaje de grasa corporal" },
+                  { id: "mantenimiento", label: "⚖️ Mantenimiento", desc: "Mantener peso y composición actual" },
+                ].map((option) => (
                   <button
-                    key={item.id}
-                    onClick={() => setObjetivo(item.id as Objetivo)}
-                    className={`flex flex-col items-start rounded-2xl border p-4 transition ${
-                      objetivo === item.id
-                        ? "border-[#b6f542] bg-[#b6f542]/10"
-                        : "border-zinc-800 bg-black/40 hover:border-zinc-700"
+                    key={option.id}
+                    onClick={() => setObjetivo(option.id as Objetivo)}
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      objetivo === option.id
+                        ? "border-[#b6f542]/50 bg-[#b6f542]/10 text-[#b6f542]"
+                        : "border-zinc-800/80 bg-zinc-900/30 text-zinc-300 hover:border-zinc-700/50"
                     }`}
                   >
-                    <span
-                      className={`font-semibold ${
-                        objetivo === item.id ? "text-[#b6f542]" : "text-zinc-200"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                    <span className="mt-1 text-xs text-zinc-500 text-left">
-                      {item.desc}
-                    </span>
+                    <div className="font-medium">{option.label}</div>
+                    <div className="text-sm text-zinc-400">{option.desc}</div>
                   </button>
                 ))}
               </div>
@@ -309,7 +299,7 @@ export default function OnboardingPage() {
           <div className="mt-10 flex items-center justify-between">
             {step > 1 ? (
               <button
-                onClick={handlePrev}
+                onClick={handleBack}
                 className="rounded-full px-5 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/50 hover:text-zinc-100"
               >
                 Atrás
@@ -318,13 +308,14 @@ export default function OnboardingPage() {
               <div /> // Espaciador dummy
             )}
 
-            {step < 4 ? (
+            {step < 5 ? (
               <button
                 onClick={handleNext}
                 disabled={
                   (step === 1 && (!peso || !altura)) ||
                   (step === 2 && (!edad || !sexo)) ||
-                  (step === 3 && !actividad)
+                  (step === 3 && !actividad) ||
+                  (step === 4 && !objetivo)
                 }
                 className="rounded-full bg-[#b6f542] px-6 py-2.5 text-sm font-semibold text-black shadow-[0_0_20px_rgba(182,245,66,0.3)] transition hover:bg-[#c8ff62] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
@@ -333,10 +324,10 @@ export default function OnboardingPage() {
             ) : (
               <button
                 onClick={handleFinish}
-                disabled={!objetivo || saving}
+                disabled={!deporte || (deporte === "otro" && !otroDeporte) || saving}
                 className="rounded-full bg-[#b6f542] px-6 py-2.5 text-sm font-semibold text-black shadow-[0_0_20px_rgba(182,245,66,0.3)] transition hover:bg-[#c8ff62] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                {saving ? "Guardando..." : "Finalizar y Entrar"}
+                {saving ? "Guardando..." : "Finalizar"}
               </button>
             )}
           </div>
