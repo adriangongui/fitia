@@ -1,12 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Función para llamar a Groq API
+async function callGroqAPI(prompt: string) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un nutricionista experto que responde únicamente con JSON válido. No incluyas explicaciones, solo el JSON."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 8000,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Groq API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
 // Función para calcular TMB y calorías diarias con Harris-Benedict
 function calcularCaloriasHarrisBenedict(peso: number, altura: number, edad: number, sexo: string, actividad: string, objetivo: string) {
@@ -67,15 +97,26 @@ export async function POST(request: NextRequest) {
     console.log("Generando plan para user_id:", user_id);
 
     // Cargar perfil del usuario
-    const { data: perfil, error: errorPerfil } = await supabase
+    const { data: perfilData } = await supabase
       .from("perfiles")
-      .select("peso, altura, edad, sexo, actividad, objetivo, deporte")
+      .select("*")
       .eq("user_id", user_id)
-      .single();
+      .maybeSingle();
 
-    if (errorPerfil || !perfil) {
-      console.error("Error cargando perfil:", errorPerfil);
-      return NextResponse.json({ error: "No se encontró el perfil del usuario" }, { status: 404 });
+    let perfil = perfilData;
+    
+    // Si no hay perfil, usar valores por defecto
+    if (!perfil) {
+      console.log("Perfil no encontrado, usando valores por defecto");
+      perfil = {
+        peso: 75,
+        altura: 175,
+        edad: 25,
+        sexo: "hombre",
+        actividad: "moderado",
+        objetivo: "mantenimiento",
+        deporte: "gimnasio"
+      };
     }
 
     console.log("Perfil encontrado:", perfil);
@@ -156,22 +197,9 @@ RESPONDE ÚNICAMENTE con un JSON válido siguiendo esta estructura exacta:
 
 Asegúrate de que el total diario de calorías esté cerca de ${caloriasDiarias}kcal y los macros se ajusten a los objetivos.`;
 
-    // Llamar a la API de Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 8000,
-      },
-    });
-
-    const response = await result.response;
-    const text = response.text();
-    console.log("Respuesta de IA:", text);
+    // Llamar a la API de Groq
+    const text = await callGroqAPI(prompt);
+    console.log("Respuesta de Groq:", text);
 
     // Extraer JSON de la respuesta
     let planSemanal;
@@ -189,7 +217,8 @@ Asegúrate de que el total diario de calorías esté cerca de ${caloriasDiarias}
       return NextResponse.json({ error: "Error generando el plan semanal" }, { status: 500 });
     }
 
-    console.log("Plan generado exitosamente");
+    console.log("Plan generado correctamente");
+    console.log("Estructura del plan:", JSON.stringify(planSemanal, null, 2));
 
     return NextResponse.json({ 
       success: true, 

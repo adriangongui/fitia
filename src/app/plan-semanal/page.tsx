@@ -191,7 +191,7 @@ export default function PlanSemanalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-zinc-900 text-zinc-50">
-      <Header userEmail={email} userName={email?.split("@")[0] ?? null} />
+      <Header userEmail={email ?? null} userName={email?.split("@")[0] ?? null} />
 
       <main className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <div className="mb-8">
