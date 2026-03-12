@@ -111,6 +111,33 @@ export default function EntrenamientoPage() {
     router.replace("/");
   };
 
+  const handleEliminarEntrenamiento = async (entrenamientoId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que se abra el modal
+    
+    if (!confirm('¿Estás seguro de que quieres eliminar este entrenamiento?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("entrenamientos")
+        .delete()
+        .eq("id", entrenamientoId)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error eliminando entrenamiento:", error);
+        alert("No se pudo eliminar el entrenamiento");
+      } else {
+        // Eliminar visualmente de la lista
+        setHistorial(prev => prev.filter(h => h.id !== entrenamientoId));
+      }
+    } catch (error) {
+      console.error("Error eliminando entrenamiento:", error);
+      alert("No se pudo eliminar el entrenamiento");
+    }
+  };
+
   const handleRegistrar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !tipo || !duracion || !intensidad) return;
@@ -413,9 +440,18 @@ export default function EntrenamientoPage() {
                             <p className="text-sm text-zinc-300 line-clamp-2">{h.notas}</p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-[#b6f542]">{formatNumber(h.calorias_quemadas)}</p>
-                          <p className="text-[10px] text-zinc-500 uppercase">kcal</p>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-[#b6f542]">{formatNumber(h.calorias_quemadas)}</p>
+                            <p className="text-[10px] text-zinc-500 uppercase">kcal</p>
+                          </div>
+                          <button
+                            onClick={(e) => handleEliminarEntrenamiento(h.id, e)}
+                            className="text-red-400 hover:text-red-300 transition-colors p-1 rounded hover:bg-red-500/10"
+                            title="Eliminar entrenamiento"
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </div>
                     </button>

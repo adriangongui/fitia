@@ -53,7 +53,7 @@ export async function POST(req: Request) {
           // Obtener entrenamientos de hoy
           const { data: entrenamientosHoy, error: errorEntrenamientos } = await supabase
             .from("entrenamientos")
-            .select("tipo, duracion, intensidad, calorias_quemadas, proteinas_extra, recomendacion, created_at")
+            .select("tipo, duracion, intensidad, hora_entrenamiento, calorias_quemadas, proteinas_extra, notas, recomendacion, created_at")
             .eq("user_id", userId)
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
@@ -69,9 +69,20 @@ export async function POST(req: Request) {
           }
 
           if (!errorEntrenamientos && entrenamientosHoy && entrenamientosHoy.length > 0) {
-            entrenamientosTexto = entrenamientosHoy.map(e => 
-              `• ${e.tipo} ${e.intensidad.toLowerCase()} por ${e.duracion}min (${e.calorias_quemadas}kcal quemadas, +${e.proteinas_extra || 0}g proteína extra)`
-            ).join('\n');
+            entrenamientosTexto = entrenamientosHoy.map(e => {
+              const hora = e.hora_entrenamiento || new Date(e.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+              let texto = `• ${e.tipo} ${e.intensidad.toLowerCase()} por ${e.duracion}min a las ${hora} (${e.calorias_quemadas}kcal quemadas, +${e.proteinas_extra || 0}g proteína extra)`;
+              
+              if (e.notas) {
+                texto += `\n  Notas: ${e.notas}`;
+              }
+              
+              if (e.recomendacion) {
+                texto += `\n  Recomendación recibida: ${e.recomendacion}`;
+              }
+              
+              return texto;
+            }).join('\n\n');
 
             recomendacionesTexto = entrenamientosHoy
               .filter(e => e.recomendacion)

@@ -263,7 +263,13 @@ export default function DashboardPage() {
       { calorias: 0, proteinas: 0, carbohidratos: 0, grasas: 0 }
     );
 
-    const proteinasExtraEntrenamiento = entrenamientosSesion.reduce(
+    // NO sumar proteínas extra al círculo - solo para mostrar en tarjeta
+    return resumenComidas;
+  }, [analisisSesion]);
+
+  // Calcular proteínas extra separadamente para la tarjeta
+  const proteinasExtraEntrenamiento = useMemo(() => {
+    return entrenamientosSesion.reduce(
       (acc, item) => {
         const proteinasCampo = item.proteinas_extra || 0;
         const proteinasTexto = proteinasCampo === 0 ? extraerProteinasDeTexto(item.recomendacion) : proteinasCampo;
@@ -271,12 +277,7 @@ export default function DashboardPage() {
       },
       0
     );
-
-    return {
-      ...resumenComidas,
-      proteinas: resumenComidas.proteinas + proteinasExtraEntrenamiento
-    };
-  }, [analisisSesion, entrenamientosSesion]);
+  }, [entrenamientosSesion]);
 
   const nombreCorto = useMemo(() => {
     const base = (email ?? "deportista").split("@")[0] ?? "deportista";
@@ -471,24 +472,20 @@ export default function DashboardPage() {
                   
                   <div className="text-sm text-zinc-200 leading-relaxed">
                     {(() => {
-                      const proteinasExtra = entrenamientosSesion.reduce(
-                        (acc, item) => acc + (item.proteinas_extra || 0),
-                        0
-                      );
+                      const sesionesCount = entrenamientosSesion.length;
                       const caloriasQuemadas = entrenamientosSesion.reduce(
                         (acc, item) => acc + item.calorias_quemadas,
                         0
                       );
-                      const sesionesCount = entrenamientosSesion.length;
                       
                       return (
                         <div>
                           <p className="mb-2">
-                            💪 <span className="font-semibold text-[#b6f542]">+{formatNumber(proteinasExtra)}g proteína</span> y nutrientes extra por tu{sesionesCount === 1 ? ' entrenamiento' : 's entrenamientos'} de hoy
+                            💪 <span className="font-semibold text-[#b6f542]">+{formatNumber(proteinasExtraEntrenamiento)}g proteína recomendada extra</span> - ¡aún no las has registrado!
                           </p>
                           {caloriasQuemadas > 0 && (
                             <p className="text-xs text-zinc-400">
-                              🔥 Quemaste {formatNumber(caloriasQuemadas)} kcal en total
+                              🔥 Quemaste {formatNumber(caloriasQuemadas)} kcal en {sesionesCount === 1 ? 'tu entrenamiento' : 'tus entrenamientos'} de hoy
                             </p>
                           )}
                         </div>
