@@ -279,6 +279,21 @@ export default function DashboardPage() {
     );
   }, [entrenamientosSesion]);
 
+  // Calcular objetivos ajustados (sumando proteínas extra y calorías quemadas)
+  const objetivosAjustados = useMemo(() => {
+    const caloriasQuemadas = entrenamientosSesion.reduce(
+      (acc, item) => acc + item.calorias_quemadas,
+      0
+    );
+
+    return {
+      kcal: objetivosPersonales.kcal + caloriasQuemadas,
+      p: objetivosPersonales.p + proteinasExtraEntrenamiento,
+      c: objetivosPersonales.c,
+      g: objetivosPersonales.g
+    };
+  }, [objetivosPersonales, entrenamientosSesion, proteinasExtraEntrenamiento]);
+
   const nombreCorto = useMemo(() => {
     const base = (email ?? "deportista").split("@")[0] ?? "deportista";
     const clean = base.replace(/[._-]+/g, " ").trim();
@@ -422,8 +437,8 @@ export default function DashboardPage() {
                     <ProgressCircle
                       label="Calorías"
                       value={resumenDiario.calorias}
-                      target={objetivosPersonales.kcal}
-                      size={168}
+                      target={objetivosAjustados.kcal}
+                      size={120}
                       stroke={12}
                     />
                   </div>
@@ -434,7 +449,7 @@ export default function DashboardPage() {
                     <ProgressCircle
                       label="Proteínas (g)"
                       value={resumenDiario.proteinas}
-                      target={objetivosPersonales.p}
+                      target={objetivosAjustados.p}
                       size={100}
                       stroke={10}
                     />
@@ -443,7 +458,7 @@ export default function DashboardPage() {
                     <ProgressCircle
                       label="Carbohidratos (g)"
                       value={resumenDiario.carbohidratos}
-                      target={objetivosPersonales.c}
+                      target={objetivosAjustados.c}
                       size={100}
                       stroke={10}
                     />
@@ -452,7 +467,7 @@ export default function DashboardPage() {
                     <ProgressCircle
                       label="Grasas (g)"
                       value={resumenDiario.grasas}
-                      target={objetivosPersonales.g}
+                      target={objetivosAjustados.g}
                       size={100}
                       stroke={10}
                     />
@@ -481,7 +496,7 @@ export default function DashboardPage() {
                       return (
                         <div>
                           <p className="mb-2">
-                            💪 <span className="font-semibold text-[#b6f542]">+{formatNumber(proteinasExtraEntrenamiento)}g proteína recomendada extra</span> - ¡aún no las has registrado!
+                            💪 <span className="font-semibold text-[#b6f542]">+{formatNumber(proteinasExtraEntrenamiento)}g proteína añadidos a tu objetivo de hoy</span> por tu entrenamiento
                           </p>
                           {caloriasQuemadas > 0 && (
                             <p className="text-xs text-zinc-400">
