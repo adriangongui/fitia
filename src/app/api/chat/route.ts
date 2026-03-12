@@ -19,12 +19,9 @@ const CONOCIMIENTO_NUTRICIONAL = `
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
-    const lastMessage = messages[messages.length - 1];
-    const userId = lastMessage?.userId;
-    const isTitleRequest = lastMessage?.content === "__generate_title__";
-
-    console.log("user_id recibido:", userId);
+    const { messages, user_id, isTitleRequest } = await request.json();
+    
+    console.log("user_id recibido:", user_id);
 
     let systemPrompt = "";
 
@@ -44,17 +41,17 @@ export async function POST(request: NextRequest) {
       const { data: perfil, error: errorPerfil } = await supabase
         .from("perfiles")
         .select("peso, altura, edad, sexo, actividad, objetivo, nombre, deporte")
-        .eq("user_id", userId)
+        .eq("user_id", user_id)
         .single();
 
       console.log("Perfil encontrado:", perfil);
       if (!perfil) {
-        console.log("PERFIL NO ENCONTRADO para user_id:", userId);
+        console.log("PERFIL NO ENCONTRADO para user_id:", user_id);
       }
 
-      // Obtener contexto del día si hay userId
+      // Obtener contexto del día si hay user_id
       let contextoDia = "";
-      if (userId) {
+      if (user_id) {
         try {
           const startOfToday = new Date();
           startOfToday.setHours(0, 0, 0, 0);
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
           const { data: comidasHoy, error: errorComidas } = await supabase
             .from("analisis")
             .select("nombre_plato, calorias, proteinas, carbohidratos, grasas")
-            .eq("user_id", userId)
+            .eq("user_id", user_id)
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
 
@@ -71,7 +68,7 @@ export async function POST(request: NextRequest) {
           const { data: entrenamientosHoy, error: errorEntrenamientos } = await supabase
             .from("entrenamientos")
             .select("tipo, duracion, intensidad, hora_entrenamiento, calorias_quemadas, proteinas_extra, notas, recomendacion, created_at")
-            .eq("user_id", userId)
+            .eq("user_id", user_id)
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
 
@@ -79,7 +76,7 @@ export async function POST(request: NextRequest) {
           const { data: suplementosActivos, error: errorSuplementos } = await supabase
             .from("suplementos")
             .select("nombre, dosis, momento, notas")
-            .eq("user_id", userId)
+            .eq("user_id", user_id)
             .eq("activo", true)
             .order("created_at", { ascending: false });
 

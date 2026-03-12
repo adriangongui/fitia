@@ -73,6 +73,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: user: ${currentInput}` }],
           isTitleRequest: true,
+          user_id: userId,
         }),
       }).then(res => res.json()).then(data => {
          if (data.reply) {
@@ -95,7 +96,7 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, userId, conversationId: activeConvId }),
+        body: JSON.stringify({ messages: newMessages, user_id: userId }),
       });
 
       if (!res.ok) {
@@ -216,6 +217,7 @@ export default function ChatPage() {
               body: JSON.stringify({
                 messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: ${promptContext}` }],
                 isTitleRequest: true,
+                user_id: userId,
               }),
             });
             if (res.ok) {

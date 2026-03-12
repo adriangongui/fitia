@@ -24,7 +24,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
   };
 
   return (
-    <header className="relative z-10 border-b border-zinc-800/80 bg-black/40 backdrop-blur">
+    <header className="relative z-[9999] border-b border-zinc-800/80 bg-black/40 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-4">
           <div className="flex items-center gap-2 cursor-default">
@@ -60,7 +60,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
               </button>
               
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
                   <Link href="/suplementos" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
                     <span aria-hidden className="text-sm mr-2">💊</span> Suplementos
                   </Link>
@@ -98,7 +98,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
               {avatarInicial}
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
                 <Link href="/perfil" className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50">
                   Mi perfil
                 </Link>
@@ -119,7 +119,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
 
       {/* Menú móvil desplegable */}
       {mobileMenuOpen && (
-        <div className="absolute top-full left-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50 sm:hidden">
+        <div className="absolute top-full left-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999] sm:hidden">
           <Link href="/dashboard" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-100 bg-zinc-900/50">
             <span aria-hidden className="text-sm mr-2">⬚</span> Dashboard
           </Link>
