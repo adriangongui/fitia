@@ -25,6 +25,7 @@ type Entrenamiento = {
   notas: string | null;
   calorias_quemadas: number;
   proteinas_extra: number;
+  recomendacion: string | null;
   created_at: string;
 };
 
@@ -218,6 +219,38 @@ export default function DashboardPage() {
     fetchUser();
   }, [router]);
 
+  // Función para extraer proteínas del texto de recomendación
+  const extraerProteinasDeTexto = (recomendacion: string | null): number => {
+    if (!recomendacion) return 0;
+    
+    // Buscar patrones como "30g proteína", "30-40g proteína", "30-40 gramos de proteína"
+    const patrones = [
+      /(\d+(?:-\d+)?)\s*[g]\s*(?:de\s*)?proteína/gi,
+      /(\d+(?:-\d+)?)\s*gramos\s*(?:de\s*)?proteína/gi,
+      /proteína[:\s]*(\d+(?:-\d+)?)\s*[g]/gi
+    ];
+    
+    for (const patron of patrones) {
+      const coincidencias = recomendacion.match(patron);
+      if (coincidencias) {
+        for (const coincidencia of coincidencias) {
+          const numeros = coincidencia.match(/(\d+(?:-\d+)?)/);
+          if (numeros) {
+            const rango = numeros[1];
+            if (rango.includes('-')) {
+              const [min, max] = rango.split('-').map(Number);
+              return Math.round((min + max) / 2);
+            } else {
+              return Number(rango);
+            }
+          }
+        }
+      }
+    }
+    
+    return 0;
+  };
+
   const resumenDiario = useMemo(() => {
     const resumenComidas = analisisSesion.reduce(
       (acc, item) => {
@@ -231,7 +264,11 @@ export default function DashboardPage() {
     );
 
     const proteinasExtraEntrenamiento = entrenamientosSesion.reduce(
-      (acc, item) => acc + (item.proteinas_extra || 0),
+      (acc, item) => {
+        const proteinasCampo = item.proteinas_extra || 0;
+        const proteinasTexto = proteinasCampo === 0 ? extraerProteinasDeTexto(item.recomendacion) : proteinasCampo;
+        return acc + proteinasTexto;
+      },
       0
     );
 

@@ -1,6 +1,36 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+// Función para extraer proteínas del texto de recomendación
+function extraerProteinasDeTexto(recomendacion: string): number {
+  // Buscar patrones como "30g proteína", "30-40g proteína", "30-40 gramos de proteína"
+  const patrones = [
+    /(\d+(?:-\d+)?)\s*[g]\s*(?:de\s*)?proteína/gi,
+    /(\d+(?:-\d+)?)\s*gramos\s*(?:de\s*)?proteína/gi,
+    /proteína[:\s]*(\d+(?:-\d+)?)\s*[g]/gi
+  ];
+  
+  for (const patron of patrones) {
+    const coincidencias = recomendacion.match(patron);
+    if (coincidencias) {
+      for (const coincidencia of coincidencias) {
+        const numeros = coincidencia.match(/(\d+(?:-\d+)?)/);
+        if (numeros) {
+          const rango = numeros[1];
+          if (rango.includes('-')) {
+            const [min, max] = rango.split('-').map(Number);
+            return Math.round((min + max) / 2);
+          } else {
+            return Number(rango);
+          }
+        }
+      }
+    }
+  }
+  
+  return 0;
+}
+
 // Calorías por minuto estimadas según intensidad y tipo
 // Para una persona promedio de 70kg (se ajustará con el peso real)
 const CALORIAS_BASE = {
@@ -105,13 +135,8 @@ Indícale también cuántos gramos extra de proteína le recomendarías consumir
     const groqData = await res.json();
     const recomendacion = groqData.choices?.[0]?.message?.content || "Hidrátate bien y consume una buena fuente de proteína libre de grasas.";
 
-    // Extraer proteínas recomendadas (estimación simple si la IA no lo da en formato puro)
-    let proteinas_extra = 0;
-    if (tipo === "Fuerza" || tipo === "Mixto") {
-      proteinas_extra = Math.round(pesoReal * 0.3); // extra 0.3g/kg por entreno intenso
-    } else {
-      proteinas_extra = 15; // base 15g extra
-    }
+    // Extraer proteínas recomendadas del texto
+    const proteinas_extra = extraerProteinasDeTexto(recomendacion);
 
     // 4. Guardar en Supabase
     console.log("Intentando guardar entrenamiento:", {
@@ -120,7 +145,9 @@ Indícale también cuántos gramos extra de proteína le recomendarías consumir
       duracion: parseInt(duracion),
       intensidad,
       notas,
-      calorias_quemadas
+      calorias_quemadas,
+      proteinas_extra,
+      recomendacion
     });
 
     const { error: errInsert, data: insertData } = await supabase.from("entrenamientos").insert([{
@@ -130,6 +157,7 @@ Indícale también cuántos gramos extra de proteína le recomendarías consumir
       intensidad,
       notas,
       calorias_quemadas,
+      proteinas_extra,
       recomendacion: recomendacion
     }]);
 

@@ -53,25 +53,46 @@ export async function POST(req: Request) {
           // Obtener entrenamientos de hoy
           const { data: entrenamientosHoy, error: errorEntrenamientos } = await supabase
             .from("entrenamientos")
-            .select("tipo, duracion, intensidad, calorias_quemadas, proteinas_extra, created_at")
+            .select("tipo, duracion, intensidad, calorias_quemadas, proteinas_extra, recomendacion, created_at")
             .eq("user_id", userId)
             .gte("created_at", startOfToday.toISOString())
             .order("created_at", { ascending: false });
 
+          let comidasTexto = "";
+          let entrenamientosTexto = "";
+          let recomendacionesTexto = "";
+
           if (!errorComidas && comidasHoy && comidasHoy.length > 0) {
-            contextoDia += `Ha comido hoy: ${comidasHoy.map(c => 
-              `${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g prot)`
-            ).join(', ')}. `;
+            comidasTexto = comidasHoy.map(c => 
+              `• ${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g proteína, ${c.carbohidratos}g carbs, ${c.grasas}g grasas)`
+            ).join('\n');
           }
 
           if (!errorEntrenamientos && entrenamientosHoy && entrenamientosHoy.length > 0) {
-            contextoDia += `Ha entrenado hoy: ${entrenamientosHoy.map(e => 
-              `${e.tipo} ${e.intensidad.toLowerCase()} ${e.duracion}min (${e.calorias_quemadas}kcal quemadas)`
-            ).join(', ')}. `;
+            entrenamientosTexto = entrenamientosHoy.map(e => 
+              `• ${e.tipo} ${e.intensidad.toLowerCase()} por ${e.duracion}min (${e.calorias_quemadas}kcal quemadas, +${e.proteinas_extra || 0}g proteína extra)`
+            ).join('\n');
+
+            recomendacionesTexto = entrenamientosHoy
+              .filter(e => e.recomendacion)
+              .map(e => `• ${e.recomendacion}`)
+              .join('\n');
           }
 
-          if (contextoDia) {
-            contextoDia = `\n\nContexto del usuario hoy: ${contextoDia}`;
+          if (comidasTexto || entrenamientosTexto) {
+            contextoDia = `
+
+=== CONTEXTO DE HOY DEL USUARIO ===
+Comidas registradas hoy:
+${comidasTexto || 'Ninguna'}
+
+Entrenamientos de hoy:
+${entrenamientosTexto || 'Ninguno'}
+
+Recomendaciones nutricionales recibidas hoy:
+${recomendacionesTexto || 'Ninguna'}
+
+Usa esta información cuando el usuario pregunte sobre su día, su dieta o su entrenamiento.`;
           }
         } catch (error) {
           console.error("Error obteniendo contexto del día:", error);
