@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Header from "@/components/Header";
 
 type Sexo = "hombre" | "mujer";
 type Actividad = "sedentario" | "moderado" | "activo" | "muy_activo";
@@ -126,29 +127,7 @@ export default function PerfilPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-zinc-900 text-zinc-50">
-      <header className="border-b border-zinc-800/80 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-4 md:px-8">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 cursor-default">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b6f542]/10 ring-1 ring-[#b6f542]/40">
-                <span className="text-lg font-semibold text-[#b6f542]">F</span>
-              </div>
-              <span className="text-lg font-semibold tracking-tight">FitIA</span>
-            </div>
-            <nav className="hidden items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 sm:flex">
-              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">⬚</span> Dashboard
-              </Link>
-              <Link href="/chat" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">✦</span> Chat Asistente
-              </Link>
-              <Link href="/ingresar" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">➕</span> Ingresar Comida
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header userEmail={email} userName={nombre} />
 
       <main className="mx-auto max-w-2xl px-6 py-10 md:px-8">
         <div className="flex items-center justify-between mb-8">

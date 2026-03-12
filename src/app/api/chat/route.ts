@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { buscarContextoRelevante } from "@/lib/buscarContexto";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -17,9 +17,14 @@ const CONOCIMIENTO_NUTRICIONAL = `
 // === AÑADIR MÁS INFORMACIÓN AQUÍ === //
 `;
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { messages, userId, conversationId, isTitleRequest } = await req.json();
+    const { messages } = await request.json();
+    const lastMessage = messages[messages.length - 1];
+    const userId = lastMessage?.userId;
+    const isTitleRequest = lastMessage?.content === "__generate_title__";
+
+    console.log("user_id recibido:", userId);
 
     let systemPrompt = "";
 
@@ -31,9 +36,9 @@ export async function POST(req: Request) {
       const lastUserQuestion = userQuestions.length > 0 ? userQuestions[userQuestions.length - 1].content : "";
       
       let contextoAdicional = "";
-      if (lastUserQuestion) {
-        contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
-      }
+      // if (lastUserQuestion) {
+      //   contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
+      // }
 
       // Obtener perfil del usuario
       const { data: perfil, error: errorPerfil } = await supabase
@@ -41,6 +46,11 @@ export async function POST(req: Request) {
         .select("peso, altura, edad, sexo, actividad, objetivo, nombre, deporte")
         .eq("user_id", userId)
         .single();
+
+      console.log("Perfil encontrado:", perfil);
+      if (!perfil) {
+        console.log("PERFIL NO ENCONTRADO para user_id:", userId);
+      }
 
       // Obtener contexto del día si hay userId
       let contextoDia = "";
@@ -72,6 +82,8 @@ export async function POST(req: Request) {
             .eq("user_id", userId)
             .eq("activo", true)
             .order("created_at", { ascending: false });
+
+          console.log("Suplementos encontrados:", suplementosActivos);
 
           let comidasTexto = "";
           let entrenamientosTexto = "";
@@ -190,7 +202,7 @@ Usa toda esta información para dar respuestas personalizadas y contextualizadas
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || "";
 
-    return NextResponse.json({ reply, conversationId });
+    return NextResponse.json({ reply });
   } catch (error) {
     console.error("Error en chat API:", error);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

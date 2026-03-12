@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Header from "@/components/Header";
 
 type AnalisisComida = {
   id?: number;
@@ -27,8 +28,6 @@ export default function IngresarPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-
-  // Funciones de FitIA - análisis foto
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analizando, setAnalizando] = useState(false);
@@ -300,72 +299,7 @@ export default function IngresarPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-zinc-900 text-zinc-50">
-      {/* HEADER */}
-      <header className="border-b border-zinc-800/80 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 md:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b6f542]/10 ring-1 ring-[#b6f542]/40">
-                <span className="text-lg font-semibold text-[#b6f542]">F</span>
-              </div>
-              <span className="text-lg font-semibold tracking-tight">FitIA</span>
-            </div>
-
-            <nav className="hidden items-center gap-1 rounded-full border border-zinc-800/80 bg-zinc-950/50 p-1 sm:flex">
-              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">⬚</span> Dashboard
-              </Link>
-              <Link href="/chat" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">✦</span> Chat Asistente
-              </Link>
-              <Link href="/ingresar" className="inline-flex items-center gap-2 rounded-full bg-zinc-900/70 px-3 py-2 text-xs font-medium text-zinc-100">
-                <span aria-hidden className="text-sm">➕</span> Ingresar Comida
-              </Link>
-              <Link href="/entrenamiento" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
-              </Link>
-              <Link href="/suplementos" className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100">
-                <span aria-hidden className="text-sm">💊</span> Suplementos
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-xs text-zinc-400">
-                Hola, <span className="font-semibold text-zinc-100">{nombreCorto}</span>
-              </p>
-              <p className="text-[11px] text-zinc-500">{email ?? "Usuario"}</p>
-            </div>
-            
-            {/* Avatar con Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#b6f542]/10 text-sm font-semibold text-[#b6f542] ring-1 ring-[#b6f542]/40 transition hover:bg-[#b6f542]/20"
-              >
-                {avatarInicial}
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-50">
-                  <button className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50">
-                    Mi perfil
-                  </button>
-                  <button className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50">
-                    Configuración
-                  </button>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-400/10"
-                  >
-                    Cerrar sesión
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header userEmail={email} userName={nombreCorto} />
 
       {/* PÁGINA PRINCIPAL */}
       <main className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
