@@ -447,10 +447,10 @@ export default function EntrenamientoPage() {
                           </div>
                           <button
                             onClick={(e) => handleEliminarEntrenamiento(h.id, e)}
-                            className="text-red-500 hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-500/10 border border-red-500/20"
+                            className="text-red-500 hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-500/10 border border-red-500/20 text-sm font-bold"
                             title="Eliminar entrenamiento"
                           >
-                            🗑️
+                            ×
                           </button>
                         </div>
                       </div>
