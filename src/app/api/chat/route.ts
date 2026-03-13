@@ -1,27 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Cliente con service role key para bypass RLS en servidor
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// Cliente anon para operaciones que respetan RLS
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const CONOCIMIENTO_NUTRICIONAL = `
-[CONOCIMIENTO NUTRICIONAL BASE]
-- Proteínas: 1.6-2.2g por kg de peso corporal para deportistas.
-- Carbohidratos: fuente principal de energía en deportes de resistencia.
-- Grasas saludables: mínimo 20% de las calorías totales.
-- Timing nutricional: consumir proteína (post-entreno) en 30-60 minutos de la ventana anabólica.
-- Creatina: único suplemento con evidencia científica sólida para fuerza y potencia.
-- Cafeína: mejora el rendimiento tomando 3-6mg por kg de peso corporal.
-// === AÑADIR MÁS INFORMACIÓN AQUÍ === //
+- Proteínas: 1.6-2.2g por kg peso corporal para deportistas
+- Carbohidratos: fuente principal de energía en deportes de resistencia
+- Grasas saludables: mínimo 20% de calorías totales
+- Timing nutricional: proteína post-entreno en 30-60 minutos
+- Creatina: único suplemento con evidencia científica sólida para fuerza
+- Cafeína: mejora rendimiento en 3-6mg por kg peso
 `;
 
 export async function POST(request: NextRequest) {
@@ -31,82 +17,70 @@ export async function POST(request: NextRequest) {
     console.log("=== INICIO CHAT ===");
     console.log("user_id:", user_id);
 
-    let systemPrompt = "";
+    let perfilTexto = "";
+    let suplementosTexto = "Sin suplementos registrados";
+    let contextoHoy = "";
 
-    if (isTitleRequest) {
-      systemPrompt = "Eres un asistente automático. Tu único trabajo es resumir el tema de la conversación en un título extremadamente corto (máximo 5 palabras). No uses comillas, ni puntos finales, ni texto introductorio.";
-    } else {
-      // Determinar la última pregunta del usuario para buscar contexto
-      const userQuestions = messages.filter((m: any) => m.role === "user");
-      const lastUserQuestion = userQuestions.length > 0 ? userQuestions[userQuestions.length - 1].content : "";
-      
-      let contextoAdicional = "";
-      // if (lastUserQuestion) {
-      //   contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
-      // }
+    if (user_id) {
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
 
-      // Obtener perfil del usuario usando supabaseAdmin (bypass RLS)
-      const { data: perfilResult, error: errorPerfil } = await supabaseAdmin
+      const { data: perfil } = await supabaseAdmin
         .from("perfiles")
-        .select("peso, altura, edad, sexo, actividad, objetivo, nombre, deporte")
+        .select("*")
         .eq("user_id", user_id)
-        .single();
+        .maybeSingle();
 
-      console.log("Perfil query result:", JSON.stringify(perfilResult));
-      if (!perfilResult) {
-        console.log("PERFIL NO ENCONTRADO para user_id:", user_id);
+      console.log("Perfil:", JSON.stringify(perfil));
+
+      if (perfil) {
+        perfilTexto = `Perfil: peso=${perfil.peso}kg, altura=${perfil.altura}cm, edad=${perfil.edad}, sexo=${perfil.sexo}, objetivo=${perfil.objetivo}, deporte=${perfil.deporte || "no especificado"}, actividad=${perfil.actividad}`;
       }
 
-      // Obtener suplementos activos usando supabaseAdmin (bypass RLS)
-      const { data: suplementosResult, error: errorSuplementos } = await supabaseAdmin
+      const { data: suplementos } = await supabaseAdmin
         .from("suplementos")
         .select("nombre, dosis, momento, notas")
         .eq("user_id", user_id)
-        .eq("activo", true)
-        .order("created_at", { ascending: false });
+        .eq("activo", true);
 
-      console.log("Suplementos query result:", JSON.stringify(suplementosResult));
+      console.log("Suplementos:", JSON.stringify(suplementos));
 
-      // Construir contexto del perfil
-      let perfilTexto = "";
-      if (perfilResult) {
-        perfilTexto = `
-Perfil del usuario:
-- Peso: ${perfilResult.peso}kg
-- Altura: ${perfilResult.altura}cm
-- Edad: ${perfilResult.edad}años
-- Sexo: ${perfilResult.sexo}
-- Actividad: ${perfilResult.actividad}
-- Objetivo: ${perfilResult.objetivo}
-- Deporte: ${perfilResult.deporte || 'No especificado'}
-- Nombre: ${perfilResult.nombre || 'Usuario'}
-        `.trim();
+      if (suplementos && suplementos.length > 0) {
+        suplementosTexto = "Suplementos activos: " + suplementos.map((s: any) => `${s.nombre} ${s.dosis} en ${s.momento}`).join(", ");
       }
 
-      // Construir contexto de suplementos
-      let suplementosTexto = "";
-      if (suplementosResult && suplementosResult.length > 0) {
-        suplementosTexto = `
-Suplementos activos:
-${suplementosResult.map((s: any) => `• ${s.nombre} (${s.dosis}) en ${s.momento}${s.notas ? ` - ${s.notas}` : ''}`).join('\n')}
-        `.trim();
-      } else {
-        suplementosTexto = "El usuario no tiene suplementos registrados.";
+      const hoy = new Date().toISOString().split("T")[0];
+      
+      const { data: comidas } = await supabaseAdmin
+        .from("analisis")
+        .select("nombre_plato, calorias, proteinas")
+        .eq("user_id", user_id)
+        .gte("created_at", hoy);
+
+      const { data: entrenamientos } = await supabaseAdmin
+        .from("entrenamientos")
+        .select("tipo, intensidad, duracion, notas, recomendacion")
+        .eq("user_id", user_id)
+        .gte("created_at", hoy);
+
+      if (comidas && comidas.length > 0) {
+        contextoHoy += "Comidas de hoy: " + comidas.map((c: any) => `${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g prot)`).join(", ");
       }
-
-      // Construir el prompt con contexto
-      systemPrompt = `${CONOCIMIENTO_NUTRICIONAL}
-
-${perfilTexto}
-
-${suplementosTexto}
-
-Eres un nutricionista deportivo experto especializado en fitness y salud. Responde de manera profesional, precisa y personalizada basándote en el perfil y contexto del usuario. Adapta tus respuestas a sus objetivos específicos, nivel de actividad y suplementación actual.
-
-Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
+      if (entrenamientos && entrenamientos.length > 0) {
+        contextoHoy += "\nEntrenamientos de hoy: " + entrenamientos.map((e: any) => `${e.tipo} ${e.intensidad} ${e.duracion}min - ${e.notas || ""}`).join(", ");
+      }
     }
 
-    // Llamar a la API de Groq
+    const systemPrompt = isTitleRequest
+      ? "Resume en máximo 5 palabras de qué trata esta conversación. Solo las palabras, sin puntuación."
+      : `Eres FitIA, nutricionista deportiva experta. Responde en español, máximo 4 líneas, tono cercano, termina con una pregunta corta.
+${CONOCIMIENTO_NUTRICIONAL}
+${perfilTexto}
+${suplementosTexto}
+${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}`;
+
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,25 +89,25 @@ Usa esta información cuando el usuario pregunte sobre su día, su dieta, su ent
       },
       body: JSON.stringify({
         model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        max_tokens: 500,
         temperature: 0.7,
-        max_tokens: 1000,
       }),
     });
 
+    const data = await res.json();
+    console.log("Groq response status:", res.status);
+    
     if (!res.ok) {
-      throw new Error("Error en la API de Groq");
+      console.error("Groq error:", JSON.stringify(data));
+      return NextResponse.json({ error: "Error de IA" }, { status: 500 });
     }
 
-    const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || "";
-
     return NextResponse.json({ reply });
+
   } catch (error) {
-    console.error("Error en chat API:", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    console.error("Error completo:", error);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
