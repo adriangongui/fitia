@@ -85,6 +85,32 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
+      let menuTexto = "";
+      if (menuSemanal && menuSemanal.plan) {
+        const dias = Object.keys(menuSemanal.plan);
+        menuTexto = `\nMenú semanal del usuario (semana del ${menuSemanal.semana_inicio}):\n`;
+        dias.forEach(dia => {
+          const comidas = menuSemanal.plan[dia];
+          menuTexto += `${dia}: desayuno=${comidas.desayuno?.nombre || ""}, almuerzo=${comidas.almuerzo?.nombre || ""}, cena=${comidas.cena?.nombre || ""}\n`;
+        });
+      }
+
+      // Cargar últimos 5 registros de peso
+      const { data: registrosPeso } = await supabaseAdmin
+        .from("registros_peso")
+        .select("peso, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      let pesoTexto = "";
+      if (registrosPeso && registrosPeso.length > 0) {
+        pesoTexto = "\nHistorial de peso reciente: " + registrosPeso.map((r: any) => {
+          const fecha = new Date(r.created_at).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+          return `${fecha}: ${r.peso}kg`;
+        }).join(", ");
+      }
+
       if (comidas && comidas.length > 0) {
         contextoHoy += "Comidas últimos 3 días: " + comidas.map((c: any) => {
           const fecha = new Date(c.created_at).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
@@ -116,7 +142,8 @@ ${CONOCIMIENTO_NUTRICIONAL}
 ${perfilTexto}
 ${suplementosTexto}
 ${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}
-${menuTexto}`;
+${menuTexto}
+${pesoTexto}`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",

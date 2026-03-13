@@ -105,10 +105,38 @@ export default function ChatPage() {
 
       const data = await res.json();
       
+      // Detectar si la respuesta contiene un JSON especial para registrar peso
+      let parsedReply;
+      try {
+        parsedReply = JSON.parse(data.reply || "{}");
+      } catch {
+        // No es JSON, usar respuesta normal
+      }
+
+      // Si es una acción especial, ejecutarla y no mostrar mensaje
+      if (parsedReply?.accion === "registrar_peso" && parsedReply?.peso) {
+        try {
+          const { error } = await supabase
+            .from("registros_peso")
+            .insert([{ user_id: userId, peso: parsedReply.peso }]);
+
+          if (error) throw error;
+
+          // Mostrar confirmación
+          alert(`✅ Peso de ${parsedReply.peso}kg registrado correctamente`);
+          return; // No mostrar el mensaje del asistente
+        } catch (error) {
+          console.error("Error al registrar peso desde chat:", error);
+          alert("Error al registrar peso. Inténtalo de nuevo.");
+        }
+      }
+
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant" as const,
-        content: data.reply || "",
+        content: parsedReply?.accion === "registrar_peso" 
+          ? `✅ Peso de ${parsedReply.peso}kg registrado correctamente`
+          : (data.reply || ""),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

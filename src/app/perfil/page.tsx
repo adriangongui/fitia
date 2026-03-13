@@ -11,6 +11,12 @@ type Actividad = "sedentario" | "moderado" | "activo" | "muy_activo";
 type Objetivo = "ganar_musculo" | "perder_grasa" | "mantenimiento";
 type Deporte = "ninguno" | "futbol" | "baloncesto" | "natacion" | "ciclismo" | "running" | "crossfit" | "gimnasio" | "artes_marciales" | "otro";
 
+type RegistroPeso = {
+  id: string;
+  peso: number;
+  created_at: string;
+};
+
 export default function PerfilPage() {
   const router = useRouter();
 
@@ -29,6 +35,12 @@ export default function PerfilPage() {
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
   const [deporte, setDeporte] = useState<Deporte | null>(null);
   const [otroDeporte, setOtroDeporte] = useState<string>("");
+
+  // Estados para seguimiento de peso
+  const [registrosPeso, setRegistrosPeso] = useState<RegistroPeso[]>([]);
+  const [nuevoPeso, setNuevoPeso] = useState<string>("");
+  const [showRecordatorio, setShowRecordatorio] = useState(false);
+  const [diasDesdeUltimoRegistro, setDiasDesdeUltimoRegistro] = useState<number>(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -53,21 +65,14 @@ export default function PerfilPage() {
       if (data) {
         setPerfilId(data.id);
         setNombre(data.nombre || "");
-        setPeso(String(data.peso));
-        setAltura(String(data.altura));
-        setEdad(String(data.edad));
-        setSexo(data.sexo as Sexo);
-        setActividad(data.actividad as Actividad);
-        setObjetivo(data.objetivo as Objetivo);
-        
-        // Manejar el campo deporte
-        if (data.deporte) {
-          if (["futbol", "baloncesto", "natacion", "ciclismo", "running", "crossfit", "gimnasio", "artes_marciales"].includes(data.deporte)) {
-            setDeporte(data.deporte as Deporte);
-          } else {
-            setDeporte("otro");
-            setOtroDeporte(data.deporte);
-          }
+        setPeso(data.peso?.toString() || "");
+        setAltura(data.altura?.toString() || "");
+        setEdad(data.edad?.toString() || "");
+        setSexo(data.sexo);
+        setActividad(data.actividad);
+        setObjetivo(data.objetivo);
+        setDeporte(data.deporte);
+        setOtroDeporte(data.otro_deporte || "");
         }
       } else {
         router.replace("/onboarding");
