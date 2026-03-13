@@ -36,6 +36,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
   }, []);
 
   const handleMasClick = (e: React.MouseEvent) => {
+    console.log("handleMasClick llamado - masAbierto:", masAbierto);
     e.stopPropagation();
     setMasAbierto(!masAbierto);
     setAvatarAbierto(false);

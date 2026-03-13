@@ -90,7 +90,7 @@ ${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}`;
       },
       body: JSON.stringify({
         model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...messages.map((m: any) => ({ role: m.role, content: m.content }))],
         max_tokens: 500,
         temperature: 0.7,
       }),
