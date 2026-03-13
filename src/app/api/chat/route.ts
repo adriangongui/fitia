@@ -54,23 +54,39 @@ export async function POST(request: NextRequest) {
 
       const hoy = new Date().toISOString().split("T")[0];
       
+      const hace3dias = new Date();
+      hace3dias.setDate(hace3dias.getDate() - 3);
+      const hace3diasStr = hace3dias.toISOString().split("T")[0];
+      
+      const hace7dias = new Date();
+      hace7dias.setDate(hace7dias.getDate() - 7);
+      const hace7diasStr = hace7dias.toISOString().split("T")[0];
+      
       const { data: comidas } = await supabaseAdmin
         .from("analisis")
-        .select("nombre_plato, calorias, proteinas")
+        .select("nombre_plato, calorias, proteinas, created_at")
         .eq("user_id", user_id)
-        .gte("created_at", hoy);
+        .gte("created_at", hace3diasStr)
+        .order("created_at", { ascending: false });
 
       const { data: entrenamientos } = await supabaseAdmin
         .from("entrenamientos")
-        .select("tipo, intensidad, duracion, notas, recomendacion")
+        .select("tipo, intensidad, duracion, notas, recomendacion, created_at")
         .eq("user_id", user_id)
-        .gte("created_at", hoy);
+        .gte("created_at", hace7diasStr)
+        .order("created_at", { ascending: false });
 
       if (comidas && comidas.length > 0) {
-        contextoHoy += "Comidas de hoy: " + comidas.map((c: any) => `${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g prot)`).join(", ");
+        contextoHoy += "Comidas últimos 3 días: " + comidas.map((c: any) => {
+          const fecha = new Date(c.created_at).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+          return `${fecha}: ${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g prot)`;
+        }).join(", ");
       }
       if (entrenamientos && entrenamientos.length > 0) {
-        contextoHoy += "\nEntrenamientos de hoy: " + entrenamientos.map((e: any) => `${e.tipo} ${e.intensidad} ${e.duracion}min - ${e.notas || ""}`).join(", ");
+        contextoHoy += "\nEntrenamientos últimos 7 días: " + entrenamientos.map((e: any) => {
+          const fecha = new Date(e.created_at).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" });
+          return `${fecha}: ${e.tipo} ${e.intensidad} ${e.duracion}min - ${e.notas || ""}`;
+        }).join("\n");
       }
     }
 

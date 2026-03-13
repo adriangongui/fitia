@@ -198,7 +198,7 @@ export default function PlanSemanalPage() {
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-zinc-50">Plan Semanal</h1>
+                <h1 className="text-2xl font-bold text-zinc-50">Menú Semanal</h1>
                 <p className="text-sm text-zinc-400 mt-1">Plan nutricional personalizado para toda la semana</p>
               </div>
               <div className="flex gap-3">
@@ -288,7 +288,7 @@ export default function PlanSemanalPage() {
         ) : (
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-12 text-center">
             <div className="text-6xl mb-4">🍽</div>
-            <h3 className="text-xl font-semibold text-zinc-50 mb-2">Sin plan semanal</h3>
+            <h3 className="text-xl font-semibold text-zinc-50 mb-2">Sin menú semanal</h3>
             <p className="text-sm text-zinc-400 mb-6">
               Genera un plan nutricional personalizado con IA para toda la semana
             </p>

@@ -96,7 +96,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
                     <span aria-hidden className="text-sm mr-2">📊</span> Historial
                   </Link>
                   <Link href="/plan-semanal" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
-                    <span aria-hidden className="text-sm mr-2">📅</span> Plan Semanal
+                    <span aria-hidden className="text-sm mr-2">📅</span> Menú Semanal
                   </Link>
                 </div>
               )}
@@ -173,7 +173,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
             <span aria-hidden className="text-sm mr-2">📊</span> Historial
           </Link>
           <Link href="/plan-semanal" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
-            <span aria-hidden className="text-sm mr-2">📅</span> Plan Semanal
+            <span aria-hidden className="text-sm mr-2">📅</span> Menú Semanal
           </Link>
         </div>
       )}
