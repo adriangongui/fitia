@@ -228,7 +228,7 @@ export default function PlanSemanalPage() {
             {diasSemana.map((dia) => {
               const diaPlan = plan[dia];
               const expandido = diasExpandidos.has(dia);
-              const totales = calcularTotalesDia(diaPlan);
+              const totales = diaPlan ? calcularTotalesDia(diaPlan) : { calorias: 0, proteinas: 0, carbohidratos: 0, grasas: 0 };
 
               return (
                 <div key={dia} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 overflow-hidden">
@@ -245,10 +245,12 @@ export default function PlanSemanalPage() {
                     </div>
                   </button>
 
-                  {expandido && (
+                  {expandido && diaPlan && (
                     <div className="border-t border-zinc-800/50 p-4 space-y-3">
                       {comidasDia.map((comida) => {
                         const comidaData = diaPlan[comida.key];
+                        if (!comidaData) return null;
+                        
                         return (
                           <div key={comida.key} className="rounded-lg border border-zinc-800/40 bg-zinc-900/50 p-3">
                             <div className="flex items-center gap-2 mb-2">

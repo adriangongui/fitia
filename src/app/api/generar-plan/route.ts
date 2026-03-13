@@ -150,52 +150,27 @@ export async function POST(request: NextRequest) {
       ? suplementos.map(s => `- ${s.nombre} (${s.dosis}) en ${s.momento}`).join('\n')
       : "No hay suplementos activos";
 
-    const prompt = `Eres un nutricionista experto deportivo español. Genera un plan semanal completo y realista para España.
+    const prompt = `Eres un nutricionista deportivo experto. Genera un plan de comidas semanal en formato JSON puro, sin texto adicional, sin markdown, sin explicaciones. Solo el JSON.
 
-DATOS DEL USUARIO:
-- Peso: ${perfil.peso}kg
-- Altura: ${perfil.altura}cm
-- Edad: ${perfil.edad}años
-- Sexo: ${perfil.sexo}
-- Actividad: ${perfil.actividad}
-- Objetivo: ${perfil.objetivo}
-- Deporte: ${perfil.deporte || 'No especificado'}
-- Calorías objetivo diarias: ${caloriasDiarias}kcal
-- Proteínas objetivo diarias: ${proteinasGramos}g
-- Carbohidratos objetivo diarios: ${carbohidratosGramos}g
-- Grasas objetivo diarias: ${grasasGramos}g
-
-SUPLEMENTOS ACTIVOS:
-${suplementosTexto}
-
-INSTRUCCIONES:
-1. Genera un plan semanal (Lunes a Domingo) completo y variado
-2. Cada día debe incluir: Desayuno, Media mañana, Almuerzo, Merienda, Cena
-3. Las comidas deben ser realistas para España (productos disponibles, cultura mediterránea)
-4. Distribuye las calorías y macros correctamente durante el día
-5. Varía los alimentos cada día para evitar monotonía
-6. Considera el deporte y objetivos del usuario
-7. Incluye alimentos típicos españoles y mediterráneos
-8. Adapta los horarios de comidas al estilo español (desayuno 7-9h, almuerzo 13-15h, cena 20-22h)
-
-RESPONDE ÚNICAMENTE con un JSON válido siguiendo esta estructura exacta:
+La estructura debe ser EXACTAMENTE esta:
 {
   "lunes": {
-    "desayuno": {"nombre": "Nombre comida", "calorias": numero, "proteinas": numero, "carbohidratos": numero, "grasas": numero},
-    "media_manana": {"nombre": "Nombre comida", "calorias": numero, "proteinas": numero, "carbohidratos": numero, "grasas": numero},
-    "almuerzo": {"nombre": "Nombre comida", "calorias": numero, "proteinas": numero, "carbohidratos": numero, "grasas": numero},
-    "merienda": {"nombre": "Nombre comida", "calorias": numero, "proteinas": numero, "carbohidratos": numero, "grasas": numero},
-    "cena": {"nombre": "Nombre comida", "calorias": numero, "proteinas": numero, "carbohidratos": numero, "grasas": numero}
+    "desayuno": {"nombre": "Nombre del plato", "calorias": 400, "proteinas": 30, "carbohidratos": 45, "grasas": 12},
+    "media_manana": {"nombre": "Nombre", "calorias": 200, "proteinas": 10, "carbohidratos": 25, "grasas": 5},
+    "almuerzo": {"nombre": "Nombre", "calorias": 600, "proteinas": 40, "carbohidratos": 60, "grasas": 20},
+    "merienda": {"nombre": "Nombre", "calorias": 200, "proteinas": 15, "carbohidratos": 20, "grasas": 5},
+    "cena": {"nombre": "Nombre", "calorias": 500, "proteinas": 35, "carbohidratos": 45, "grasas": 15}
   },
-  "martes": { ...misma estructura... },
-  "miercoles": { ...misma estructura... },
-  "jueves": { ...misma estructura... },
-  "viernes": { ...misma estructura... },
-  "sabado": { ...misma estructura... },
-  "domingo": { ...misma estructura... }
+  "martes": { ... mismo formato },
+  "miercoles": { ... },
+  "jueves": { ... },
+  "viernes": { ... },
+  "sabado": { ... },
+  "domingo": { ... }
 }
 
-Asegúrate de que el total diario de calorías esté cerca de ${caloriasDiarias}kcal y los macros se ajusten a los objetivos.`;
+Usuario: objetivo=${perfil.objetivo}, calorias_diarias=${Math.round(caloriasDiarias)}, deporte=${perfil.deporte}
+Adapta las comidas a la dieta mediterránea española. Varía los platos cada día.`;
 
     // Llamar a la API de Groq
     const text = await callGroqAPI(prompt);
@@ -204,14 +179,12 @@ Asegúrate de que el total diario de calorías esté cerca de ${caloriasDiarias}
     // Extraer JSON de la respuesta
     let planSemanal;
     try {
-      // Buscar el JSON en la respuesta
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        planSemanal = JSON.parse(jsonMatch[0]);
-      } else {
-        // Si no encuentra JSON, intentar parsear directamente
-        planSemanal = JSON.parse(text);
-      }
+      const texto = text || "";
+      const jsonMatch = texto.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No se pudo parsear el plan");
+      planSemanal = JSON.parse(jsonMatch[0]);
+      
+      console.log("Plan parseado:", JSON.stringify(planSemanal).substring(0, 200));
     } catch (error) {
       console.error("Error parseando JSON:", error);
       return NextResponse.json({ error: "Error generando el plan semanal" }, { status: 500 });
