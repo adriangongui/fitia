@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 interface HeaderProps {
@@ -12,7 +12,8 @@ interface HeaderProps {
 
 export default function Header({ userEmail, userName }: HeaderProps) {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [masAbierto, setMasAbierto] = useState(false);
+  const [avatarAbierto, setAvatarAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const nombreCorto = userName || (userEmail ?? "deportista").split("@")[0];
@@ -21,6 +22,28 @@ export default function Header({ userEmail, userName }: HeaderProps) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.replace("/");
+  };
+
+  // Cerrar dropdowns al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = () => { 
+      setMasAbierto(false); 
+      setAvatarAbierto(false); 
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const handleMasClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMasAbierto(!masAbierto);
+    setAvatarAbierto(false);
+  };
+
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAvatarAbierto(!avatarAbierto);
+    setMasAbierto(false);
   };
 
   return (
@@ -49,17 +72,17 @@ export default function Header({ userEmail, userName }: HeaderProps) {
               <span aria-hidden className="text-sm">🏋️</span> Entrenamiento
             </Link>
             
-            {/* Menú Más */}
+            {/* Menú "Más" dropdown */}
             <div className="relative">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={handleMasClick}
                 className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100"
               >
                 Más
-                <span className={`text-xs transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}>▼</span>
+                <span className={`text-xs transition-transform duration-200 ${masAbierto ? 'rotate-180' : ''}`}>▼</span>
               </button>
               
-              {menuOpen && (
+              {masAbierto && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
                   <Link href="/suplementos" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
                     <span aria-hidden className="text-sm mr-2">💊</span> Suplementos
@@ -95,12 +118,12 @@ export default function Header({ userEmail, userName }: HeaderProps) {
           {/* Avatar Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={handleAvatarClick}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#b6f542]/10 text-sm font-semibold text-[#b6f542] ring-1 ring-[#b6f542]/40 transition hover:bg-[#b6f542]/20"
             >
               {avatarInicial}
             </button>
-            {menuOpen && (
+            {avatarAbierto && (
                 <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
                 <Link href="/perfil" className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50">
                   Mi perfil

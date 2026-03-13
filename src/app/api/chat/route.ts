@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Cliente con service role key para bypass RLS en servidor
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Cliente anon para operaciones que respetan RLS
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const CONOCIMIENTO_NUTRICIONAL = `
 [CONOCIMIENTO NUTRICIONAL BASE]
@@ -21,7 +28,8 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, user_id, isTitleRequest } = await request.json();
     
-    console.log("user_id recibido:", user_id);
+    console.log("=== INICIO CHAT ===");
+    console.log("user_id:", user_id);
 
     let systemPrompt = "";
 
@@ -37,163 +45,87 @@ export async function POST(request: NextRequest) {
       //   contextoAdicional = await buscarContextoRelevante(lastUserQuestion);
       // }
 
-      // Obtener perfil del usuario
-      const { data: perfil, error: errorPerfil } = await supabase
+      // Obtener perfil del usuario usando supabaseAdmin (bypass RLS)
+      const { data: perfilResult, error: errorPerfil } = await supabaseAdmin
         .from("perfiles")
         .select("peso, altura, edad, sexo, actividad, objetivo, nombre, deporte")
         .eq("user_id", user_id)
         .single();
 
-      console.log("Perfil encontrado:", perfil);
-      if (!perfil) {
+      console.log("Perfil query result:", JSON.stringify(perfilResult));
+      if (!perfilResult) {
         console.log("PERFIL NO ENCONTRADO para user_id:", user_id);
       }
 
-      // Obtener contexto del día si hay user_id
-      let contextoDia = "";
-      if (user_id) {
-        try {
-          const startOfToday = new Date();
-          startOfToday.setHours(0, 0, 0, 0);
+      // Obtener suplementos activos usando supabaseAdmin (bypass RLS)
+      const { data: suplementosResult, error: errorSuplementos } = await supabaseAdmin
+        .from("suplementos")
+        .select("nombre, dosis, momento, notas")
+        .eq("user_id", user_id)
+        .eq("activo", true)
+        .order("created_at", { ascending: false });
 
-          // Obtener comidas de hoy
-          const { data: comidasHoy, error: errorComidas } = await supabase
-            .from("analisis")
-            .select("nombre_plato, calorias, proteinas, carbohidratos, grasas")
-            .eq("user_id", user_id)
-            .gte("created_at", startOfToday.toISOString())
-            .order("created_at", { ascending: false });
+      console.log("Suplementos query result:", JSON.stringify(suplementosResult));
 
-          // Obtener entrenamientos de hoy
-          const { data: entrenamientosHoy, error: errorEntrenamientos } = await supabase
-            .from("entrenamientos")
-            .select("tipo, duracion, intensidad, hora_entrenamiento, calorias_quemadas, proteinas_extra, notas, recomendacion, created_at")
-            .eq("user_id", user_id)
-            .gte("created_at", startOfToday.toISOString())
-            .order("created_at", { ascending: false });
-
-          // Obtener suplementos activos
-          const { data: suplementosActivos, error: errorSuplementos } = await supabase
-            .from("suplementos")
-            .select("nombre, dosis, momento, notas")
-            .eq("user_id", user_id)
-            .eq("activo", true)
-            .order("created_at", { ascending: false });
-
-          console.log("Suplementos encontrados:", suplementosActivos);
-
-          let comidasTexto = "";
-          let entrenamientosTexto = "";
-          let recomendacionesTexto = "";
-          let suplementosTexto = "";
-
-          if (!errorComidas && comidasHoy && comidasHoy.length > 0) {
-            comidasTexto = comidasHoy.map(c => 
-              `• ${c.nombre_plato} (${c.calorias}kcal, ${c.proteinas}g proteína, ${c.carbohidratos}g carbs, ${c.grasas}g grasas)`
-            ).join('\n');
-          }
-
-          if (!errorEntrenamientos && entrenamientosHoy && entrenamientosHoy.length > 0) {
-            entrenamientosTexto = entrenamientosHoy.map(e => {
-              const hora = e.hora_entrenamiento || new Date(e.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-              let texto = `• ${e.tipo} ${e.intensidad.toLowerCase()} por ${e.duracion}min a las ${hora} (${e.calorias_quemadas}kcal quemadas, +${e.proteinas_extra || 0}g proteína extra)`;
-              
-              if (e.notas) {
-                texto += `\n  Notas: ${e.notas}`;
-              }
-              
-              if (e.recomendacion) {
-                texto += `\n  Recomendación recibida: ${e.recomendacion}`;
-              }
-              
-              return texto;
-            }).join('\n\n');
-
-            recomendacionesTexto = entrenamientosHoy
-              .filter(e => e.recomendacion)
-              .map(e => `• ${e.recomendacion}`)
-              .join('\n');
-          }
-
-          if (!errorSuplementos && suplementosActivos && suplementosActivos.length > 0) {
-            suplementosTexto = suplementosActivos.map(s => 
-              `• ${s.nombre} (${s.dosis}) - ${s.momento}${s.notas ? ` - Notas: ${s.notas}` : ''}`
-            ).join('\n');
-          } else {
-            suplementosTexto = "El usuario no tiene suplementos registrados";
-          }
-
-          if (comidasTexto || entrenamientosTexto || suplementosTexto) {
-            contextoDia = `
-
-=== CONTEXTO DE HOY DEL USUARIO ===
-Comidas registradas hoy:
-${comidasTexto || 'Ninguna'}
-
-Entrenamientos de hoy:
-${entrenamientosTexto || 'Ninguno'}
-
-Recomendaciones nutricionales recibidas hoy:
-${recomendacionesTexto || 'Ninguna'}
-
-Suplementos activos:
-${suplementosTexto}
-
-Deporte del usuario: ${perfil?.deporte || 'No especificado'}
-
-Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
-          }
-        } catch (error) {
-          console.error("Error obteniendo contexto del día:", error);
-        }
+      // Construir contexto del perfil
+      let perfilTexto = "";
+      if (perfilResult) {
+        perfilTexto = `
+Perfil del usuario:
+- Peso: ${perfilResult.peso}kg
+- Altura: ${perfilResult.altura}cm
+- Edad: ${perfilResult.edad}años
+- Sexo: ${perfilResult.sexo}
+- Actividad: ${perfilResult.actividad}
+- Objetivo: ${perfilResult.objetivo}
+- Deporte: ${perfilResult.deporte || 'No especificado'}
+- Nombre: ${perfilResult.nombre || 'Usuario'}
+        `.trim();
       }
 
-      systemPrompt = `Eres una nutricionista deportiva experta llamada FitIA. REGLAS IMPORTANTES:
-- Adapta la longitud de tu respuesta a la complejidad de la pregunta:
-  * Preguntas simples (qué es X, cuánto tomar...): 2-3 líneas máximo
-  * Preguntas complejas (planificación, análisis...): hasta 6-8 líneas, bien estructuradas
-  * Si necesitas dar MÁS información de la que cabe, al final pregunta si quiere que profundices
-- Siempre termina con UNA pregunta corta para continuar la conversación
-- Nunca escribas más de 8 líneas en una sola respuesta
-- Usa párrafos cortos, nunca bloques de texto densos
-- Responde en español siempre
+      // Construir contexto de suplementos
+      let suplementosTexto = "";
+      if (suplementosResult && suplementosResult.length > 0) {
+        suplementosTexto = `
+Suplementos activos:
+${suplementosResult.map((s: any) => `• ${s.nombre} (${s.dosis}) en ${s.momento}${s.notas ? ` - ${s.notas}` : ''}`).join('\n')}
+        `.trim();
+      } else {
+        suplementosTexto = "El usuario no tiene suplementos registrados.";
+      }
 
-Cuando el usuario mencione sus suplementos, puedes preguntarle:
-- Por qué los toma y qué objetivo busca
-- Cómo y cuándo exactamente los toma
-- Si nota resultados
-Luego aconseja si es lo más adecuado para su deporte, objetivo y nivel de entrenamiento basándote en evidencia científica. Sé proactivo preguntando sobre sus suplementos cuando sea relevante.
+      // Construir el prompt con contexto
+      systemPrompt = `${CONOCIMIENTO_NUTRICIONAL}
 
-Basa tus consejos especialmente en este conocimiento base:
-${CONOCIMIENTO_NUTRICIONAL}
+${perfilTexto}
 
-Contexto adicional relevante:
-${contextoAdicional}${contextoDia}
+${suplementosTexto}
 
-Usa toda esta información para dar respuestas personalizadas y contextualizadas.`;
+Eres un nutricionista deportivo experto especializado en fitness y salud. Responde de manera profesional, precisa y personalizada basándote en el perfil y contexto del usuario. Adapta tus respuestas a sus objetivos específicos, nivel de actividad y suplementación actual.
+
+Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
     }
 
-    const groqMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m: any) => ({ role: m.role, content: m.content })),
-    ];
-
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Llamar a la API de OpenAI
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: groqMessages,
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
 
     if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Error Groq API:", errorText);
-      return NextResponse.json({ error: "Error en la API de chat." }, { status: 500 });
+      throw new Error("Error en la API de OpenAI");
     }
 
     const data = await res.json();
