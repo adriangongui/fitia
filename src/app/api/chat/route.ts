@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     let perfilTexto = "";
     let suplementosTexto = "Sin suplementos registrados";
     let contextoHoy = "";
+    let menuTexto = "";
 
     if (user_id) {
       const supabaseAdmin = createClient(
@@ -76,6 +77,14 @@ export async function POST(request: NextRequest) {
         .gte("created_at", hace7diasStr)
         .order("created_at", { ascending: false });
 
+      const { data: menuSemanal } = await supabaseAdmin
+        .from("planes_comida")
+        .select("plan, semana_inicio, objetivo")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (comidas && comidas.length > 0) {
         contextoHoy += "Comidas últimos 3 días: " + comidas.map((c: any) => {
           const fecha = new Date(c.created_at).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
@@ -88,6 +97,16 @@ export async function POST(request: NextRequest) {
           return `${fecha}: ${e.tipo} ${e.intensidad} ${e.duracion}min - ${e.notas || ""}`;
         }).join("\n");
       }
+
+      let menuTexto = "";
+      if (menuSemanal && menuSemanal.plan) {
+        const dias = Object.keys(menuSemanal.plan);
+        menuTexto = `\nMenú semanal del usuario (semana del ${menuSemanal.semana_inicio}):\n`;
+        dias.forEach(dia => {
+          const comidas = menuSemanal.plan[dia];
+          menuTexto += `${dia}: desayuno=${comidas.desayuno?.nombre || ""}, almuerzo=${comidas.almuerzo?.nombre || ""}, cena=${comidas.cena?.nombre || ""}\n`;
+        });
+      }
     }
 
     const systemPrompt = isTitleRequest
@@ -96,7 +115,8 @@ export async function POST(request: NextRequest) {
 ${CONOCIMIENTO_NUTRICIONAL}
 ${perfilTexto}
 ${suplementosTexto}
-${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}`;
+${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}
+${menuTexto}`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
