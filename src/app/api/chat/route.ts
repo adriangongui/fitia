@@ -106,15 +106,15 @@ Eres un nutricionista deportivo experto especializado en fitness y salud. Respon
 Usa esta información cuando el usuario pregunte sobre su día, su dieta, su entrenamiento o sus suplementos.`;
     }
 
-    // Llamar a la API de OpenAI
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Llamar a la API de Groq
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -125,7 +125,7 @@ Usa esta información cuando el usuario pregunte sobre su día, su dieta, su ent
     });
 
     if (!res.ok) {
-      throw new Error("Error en la API de OpenAI");
+      throw new Error("Error en la API de Groq");
     }
 
     const data = await res.json();

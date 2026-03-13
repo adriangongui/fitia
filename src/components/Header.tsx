@@ -28,7 +28,8 @@ export default function Header({ userEmail, userName }: HeaderProps) {
   useEffect(() => {
     const handleClickOutside = () => { 
       setMasAbierto(false); 
-      setAvatarAbierto(false); 
+      setAvatarAbierto(false);
+      setMobileMenuOpen(false);
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -100,7 +101,10 @@ export default function Header({ userEmail, userName }: HeaderProps) {
 
           {/* Menú móvil hamburguesa */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMobileMenuOpen(!mobileMenuOpen);
+            }}
             className="flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100 sm:hidden"
           >
             <span className="text-lg">☰</span>
