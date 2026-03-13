@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     
     console.log("=== INICIO CHAT ===");
     console.log("user_id:", user_id);
+    console.log("GROQ_API_KEY existe:", !!process.env.GROQ_API_KEY);
 
     let perfilTexto = "";
     let suplementosTexto = "Sin suplementos registrados";
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (user_id) {
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
       );
 
       const { data: perfil } = await supabaseAdmin

@@ -16,8 +16,8 @@ export default function Header({ userEmail, userName }: HeaderProps) {
   const [avatarAbierto, setAvatarAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const nombreCorto = userName || (userEmail ?? "deportista").split("@")[0];
-  const avatarInicial = (userEmail ?? "U").trim().slice(0, 1).toUpperCase();
+  const nombreCorto = userName || userEmail?.split("@")[0] || "deportista";
+  const avatarInicial = userEmail?.trim().slice(0, 1).toUpperCase() || "U";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
