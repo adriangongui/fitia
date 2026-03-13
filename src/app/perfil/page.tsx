@@ -73,10 +73,12 @@ export default function PerfilPage() {
         setObjetivo(data.objetivo);
         setDeporte(data.deporte);
         setOtroDeporte(data.otro_deporte || "");
-        }
       } else {
         router.replace("/onboarding");
       }
+
+      // Cargar registros de peso
+      await cargarRegistrosPeso(user.id);
       
       setLoading(false);
     };
