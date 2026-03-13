@@ -26,10 +26,13 @@ export default function Header({ userEmail, userName }: HeaderProps) {
 
   // Cerrar dropdowns al hacer click fuera
   useEffect(() => {
-    const handleClickOutside = () => { 
-      setMasAbierto(false); 
-      setAvatarAbierto(false);
-      setMobileMenuOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!target.closest('[data-dropdown]')) {
+        setMasAbierto(false);
+        setAvatarAbierto(false);
+        setMobileMenuOpen(false);
+      }
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -75,7 +78,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
             </Link>
             
             {/* Menú "Más" dropdown */}
-            <div className="relative">
+            <div className="relative" data-dropdown="true">
               <button
                 onClick={handleMasClick}
                 className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900/50 hover:text-zinc-100"
@@ -85,7 +88,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
               </button>
               
               {masAbierto && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]" data-dropdown="true">
                   <Link href="/suplementos" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
                     <span aria-hidden className="text-sm mr-2">💊</span> Suplementos
                   </Link>
@@ -121,7 +124,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
           </div>
           
           {/* Avatar Dropdown */}
-          <div className="relative">
+          <div className="relative" data-dropdown="true">
             <button
               onClick={handleAvatarClick}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#b6f542]/10 text-sm font-semibold text-[#b6f542] ring-1 ring-[#b6f542]/40 transition hover:bg-[#b6f542]/20"
@@ -129,7 +132,7 @@ export default function Header({ userEmail, userName }: HeaderProps) {
               {avatarInicial}
             </button>
             {avatarAbierto && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-[9999]" data-dropdown="true">
                 <Link href="/perfil" className="flex w-full items-center rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50">
                   Mi perfil
                 </Link>
