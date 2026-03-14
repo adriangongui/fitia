@@ -98,6 +98,9 @@ export default function Header({ userEmail, userName }: HeaderProps) {
                   <Link href="/plan-semanal" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
                     <span aria-hidden className="text-sm mr-2">📅</span> Menú Semanal
                   </Link>
+                  <Link href="/pricing" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+                    <span aria-hidden className="text-sm mr-2">💳</span> Precios
+                  </Link>
                 </div>
               )}
             </div>
@@ -174,6 +177,9 @@ export default function Header({ userEmail, userName }: HeaderProps) {
           </Link>
           <Link href="/plan-semanal" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
             <span aria-hidden className="text-sm mr-2">📅</span> Menú Semanal
+          </Link>
+          <Link href="/pricing" className="flex w-full items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/50 hover:text-zinc-100">
+            <span aria-hidden className="text-sm mr-2">💳</span> Precios
           </Link>
         </div>
       )}
