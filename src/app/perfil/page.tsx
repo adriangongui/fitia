@@ -78,7 +78,14 @@ export default function PerfilPage() {
       }
 
       // Cargar registros de peso
-      await cargarRegistrosPeso(user.id);
+      const { data: pesoData } = await supabase
+        .from("registros_peso")
+        .select("id, peso, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(30);
+
+      if (pesoData) setRegistrosPeso(pesoData);
       
       setLoading(false);
     };
