@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Si no tiene customer_id, crearlo
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: (await supabase.auth.admin.getUser(user_id))?.data?.user?.email || "",
+        email: (await supabase.auth.admin.getUserById(user_id))?.data?.user?.email || "",
         metadata: { user_id },
       });
       customerId = customer.id;
