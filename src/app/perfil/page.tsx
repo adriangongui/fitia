@@ -317,8 +317,73 @@ export default function PerfilPage() {
               </button>
             </div>
           </section>
+
+          {/* SEGUIMIENTO DE PESO */}
+          <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-100">⚖️ Seguimiento de Peso</h2>
+            
+            <div className="mb-4 flex gap-3">
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ej: 75.5"
+                value={nuevoPeso}
+                onChange={(e) => setNuevoPeso(e.target.value)}
+                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:border-[#b6f542] focus:outline-none"
+              />
+              <button
+                onClick={registrarPeso}
+                className="rounded-xl bg-[#b6f542] px-4 py-2 font-semibold text-black hover:bg-[#c8ff62]"
+              >
+                Registrar
+              </button>
+            </div>
+
+            {registrosPeso.length > 0 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-zinc-400 mb-2">
+                  <span>Inicial: {registrosPeso[0]?.peso}kg</span>
+                  <span>Actual: {registrosPeso[registrosPeso.length-1]?.peso}kg</span>
+                  <span>Diferencia: {(registrosPeso[registrosPeso.length-1]?.peso - registrosPeso[0]?.peso).toFixed(1)}kg</span>
+                </div>
+                <svg viewBox="0 0 400 100" className="w-full h-24 mt-2">
+                  {registrosPeso.map((r, i) => {
+                    const x = (i / Math.max(registrosPeso.length - 1, 1)) * 380 + 10;
+                    const minPeso = Math.min(...registrosPeso.map(r => r.peso));
+                    const maxPeso = Math.max(...registrosPeso.map(r => r.peso));
+                    const range = maxPeso - minPeso || 1;
+                    const y = 90 - ((r.peso - minPeso) / range) * 80;
+                    return <circle key={r.id} cx={x} cy={y} r="3" fill="#b6f542" />;
+                  })}
+                  {registrosPeso.map((r, i) => {
+                    if (i === 0) return null;
+                    const x1 = ((i-1) / Math.max(registrosPeso.length - 1, 1)) * 380 + 10;
+                    const x2 = (i / Math.max(registrosPeso.length - 1, 1)) * 380 + 10;
+                    const minPeso = Math.min(...registrosPeso.map(r => r.peso));
+                    const maxPeso = Math.max(...registrosPeso.map(r => r.peso));
+                    const range = maxPeso - minPeso || 1;
+                    const y1 = 90 - ((registrosPeso[i-1].peso - minPeso) / range) * 80;
+                    const y2 = 90 - ((r.peso - minPeso) / range) * 80;
+                    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#b6f542" strokeWidth="2" />;
+                  })}
+                </svg>
+              </div>
+            )}
+
+            {registrosPeso.length === 0 && (
+              <p className="text-zinc-500 text-sm">Aún no hay registros de peso. ¡Registra tu peso hoy!</p>
+            )}
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
+const registrarPeso = async () => {
+  if (!nuevoPeso || !userId) return;
+  await supabase.from("registros_peso").insert({ user_id: userId, peso: parseFloat(nuevoPeso) });
+  setNuevoPeso("");
+  const { data } = await supabase.from("registros_peso").select("id, peso, created_at").eq("user_id", userId).order("created_at", { ascending: true }).limit(30);
+  if (data) setRegistrosPeso(data);
+};
