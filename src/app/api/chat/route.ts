@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      let menuTexto = "";
       if (menuSemanal && menuSemanal.plan) {
         const dias = Object.keys(menuSemanal.plan);
         menuTexto = `\nMenú semanal del usuario (semana del ${menuSemanal.semana_inicio}):\n`;
@@ -124,17 +123,6 @@ export async function POST(request: NextRequest) {
         }).join("\n");
       }
 
-      let menuTexto = "";
-      if (menuSemanal && menuSemanal.plan) {
-        const dias = Object.keys(menuSemanal.plan);
-        menuTexto = `\nMenú semanal del usuario (semana del ${menuSemanal.semana_inicio}):\n`;
-        dias.forEach(dia => {
-          const comidas = menuSemanal.plan[dia];
-          menuTexto += `${dia}: desayuno=${comidas.desayuno?.nombre || ""}, almuerzo=${comidas.almuerzo?.nombre || ""}, cena=${comidas.cena?.nombre || ""}\n`;
-        });
-      }
-    }
-
     const systemPrompt = isTitleRequest
       ? "Resume en máximo 5 palabras de qué trata esta conversación. Solo las palabras, sin puntuación."
       : `Eres FitIA, nutricionista deportiva experta. Responde en español, máximo 4 líneas, tono cercano, termina con una pregunta corta.
@@ -145,6 +133,7 @@ ${contextoHoy ? "=== HOY ===\n" + contextoHoy : ""}
 ${menuTexto}
 ${pesoTexto}`;
 
+    try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
