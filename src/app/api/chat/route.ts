@@ -164,3 +164,4 @@ ${pesoTexto}`;
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
+
