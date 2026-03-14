@@ -42,6 +42,14 @@ export default function PerfilPage() {
   const [showRecordatorio, setShowRecordatorio] = useState(false);
   const [diasDesdeUltimoRegistro, setDiasDesdeUltimoRegistro] = useState<number>(0);
 
+  const registrarPeso = async () => {
+    if (!nuevoPeso || !userId) return;
+    await supabase.from("registros_peso").insert({ user_id: userId, peso: parseFloat(nuevoPeso) });
+    setNuevoPeso("");
+    const { data } = await supabase.from("registros_peso").select("id, peso, created_at").eq("user_id", userId).order("created_at", { ascending: true }).limit(30);
+    if (data) setRegistrosPeso(data);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const {
@@ -379,11 +387,3 @@ export default function PerfilPage() {
     </div>
   );
 }
-
-const registrarPeso = async () => {
-  if (!nuevoPeso || !userId) return;
-  await supabase.from("registros_peso").insert({ user_id: userId, peso: parseFloat(nuevoPeso) });
-  setNuevoPeso("");
-  const { data } = await supabase.from("registros_peso").select("id, peso, created_at").eq("user_id", userId).order("created_at", { ascending: true }).limit(30);
-  if (data) setRegistrosPeso(data);
-};
