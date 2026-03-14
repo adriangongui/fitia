@@ -79,8 +79,16 @@ export default function PerfilPage() {
         setSexo(data.sexo);
         setActividad(data.actividad);
         setObjetivo(data.objetivo);
-        setDeporte(data.deporte);
-        setOtroDeporte(data.otro_deporte || "");
+        
+        // Manejar campo deporte
+        const deportesValidos = ["ninguno", "futbol", "baloncesto", "natacion", "ciclismo", "running", "crossfit", "gimnasio", "artes_marciales"];
+        if (deportesValidos.includes(data.deporte)) {
+          setDeporte(data.deporte);
+          setOtroDeporte("");
+        } else {
+          setDeporte("otro");
+          setOtroDeporte(data.deporte || "");
+        }
       } else {
         router.replace("/onboarding");
       }
@@ -120,6 +128,7 @@ export default function PerfilPage() {
           actividad,
           objetivo,
           deporte: deporte === "otro" ? otroDeporte : deporte,
+          otro_deporte: deporte === "otro" ? otroDeporte : null,
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id" });
 
