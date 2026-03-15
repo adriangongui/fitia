@@ -41,6 +41,11 @@ export default function IngresarPage() {
   const [guardandoTexto, setGuardandoTexto] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [gramos, setGramos] = useState("");
+  
+  // Estados para edición
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [nombreEditado, setNombreEditado] = useState("");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -290,6 +295,64 @@ export default function IngresarPage() {
     }
   };
 
+  // Funciones de edición
+  const iniciarEdicion = (comida: AnalisisComida) => {
+    setEditandoId(comida.id!);
+    setNombreEditado(comida.nombre_plato);
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setNombreEditado("");
+  };
+
+  const guardarEdicion = async () => {
+    if (!editandoId || !nombreEditado.trim()) return;
+
+    setGuardandoEdicion(true);
+    try {
+      const { error } = await supabase
+        .from("analisis")
+        .update({ nombre_plato: nombreEditado.trim() })
+        .eq("id", editandoId);
+
+      if (error) {
+        console.error("Error actualizando nombre:", error);
+        return;
+      }
+
+      // Actualizar en el estado local
+      setAnalisisSesion(prev => 
+        prev.map(comida => 
+          comida.id === editandoId 
+            ? { ...comida, nombre_plato: nombreEditado.trim() }
+            : comida
+        )
+      );
+
+      setUltimoResultado(prev => 
+        prev?.id === editandoId 
+          ? { ...prev, nombre_plato: nombreEditado.trim() }
+          : prev
+      );
+
+      setEditandoId(null);
+      setNombreEditado("");
+    } catch (error) {
+      console.error("Error guardando edición:", error);
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      guardarEdicion();
+    } else if (e.key === "Escape") {
+      cancelarEdicion();
+    }
+  };
+
   if (loadingUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-zinc-900 text-zinc-50">
@@ -440,10 +503,54 @@ export default function IngresarPage() {
                   analisisSesion.map((item, idx) => (
                     <div key={`${item.nombre_plato}-${idx}`} className="p-4">
                       <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-zinc-50">
-                            {item.nombre_plato}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          {editandoId === item.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={nombreEditado}
+                                onChange={(e) => setNombreEditado(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-50 focus:outline-none focus:border-[#b6f542]"
+                                autoFocus
+                              />
+                              <button
+                                onClick={guardarEdicion}
+                                disabled={guardandoEdicion}
+                                className="rounded p-1 text-green-400 hover:bg-green-400/10 transition disabled:opacity-50"
+                                title="Guardar"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={cancelarEdicion}
+                                className="rounded p-1 text-red-400 hover:bg-red-400/10 transition"
+                                title="Cancelar"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-zinc-50">
+                                {item.nombre_plato}
+                              </p>
+                              <button
+                                onClick={() => iniciarEdicion(item)}
+                                className="rounded p-1 text-zinc-400 hover:bg-zinc-700 transition"
+                                title="Editar nombre"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                           <p className="mt-1 text-xs text-zinc-500">
                             {typeof item.confianza === "number"
                               ? `Confianza: ${Math.round(item.confianza * 100)}%`

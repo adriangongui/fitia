@@ -83,22 +83,24 @@ export default function PlanSemanalPage() {
   }, [router]);
 
   const cargarPlanExistente = async (userId: string) => {
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Lunes
-    startOfWeek.setHours(0, 0, 0, 0);
-
+    console.log("Cargando plan existente para userId:", userId);
+    
     const { data: planExistente } = await supabase
       .from("planes_comida")
-      .select("plan")
+      .select("*")
       .eq("user_id", userId)
-      .gte("semana_inicio", startOfWeek.toISOString())
-      .order("semana_inicio", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    console.log("Plan cargado:", planExistente);
 
     if (planExistente?.plan) {
       setPlan(planExistente.plan);
       setPlanGuardado(true);
+      console.log("Plan establecido en estado:", planExistente.plan);
+    } else {
+      console.log("No se encontró plan guardado");
     }
   };
 

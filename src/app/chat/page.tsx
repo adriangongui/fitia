@@ -140,36 +140,74 @@ export default function ChatPage() {
               break;
 
             case "actualizar_menu":
-              if (parsedReply.dia && parsedReply.comida && parsedReply.nombre) {
-                const { data: menuActual } = await supabase
-                  .from("planes_comida")
-                  .select("plan")
-                  .eq("user_id", userId)
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .single();
-
-                if (menuActual?.plan) {
-                  const planActualizado = {
-                    ...menuActual.plan,
-                    [parsedReply.dia]: {
-                      ...menuActual.plan[parsedReply.dia],
-                      [parsedReply.comida]: {
-                        nombre: parsedReply.nombre,
-                        calorias: parsedReply.calorias || 0,
-                        proteinas: parsedReply.proteinas || 0,
-                        carbohidratos: parsedReply.carbohidratos || 0,
-                        grasas: parsedReply.grasas || 0
-                      }
-                    }
-                  };
-
-                  await supabase
+              if (parsedReply.dia && parsedReply.comida) {
+                // Caso especial para "TODOS" los días
+                if (parsedReply.dia === "TODOS" && parsedReply.opciones) {
+                  const { data: planActual } = await supabase
                     .from("planes_comida")
-                    .update({ plan: planActualizado })
-                    .eq("user_id", userId);
+                    .select("*")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
                   
-                  showToast(`✅ ${parsedReply.comida} de ${parsedReply.dia} actualizado`);
+                  if (planActual && planActual.plan) {
+                    const diasSemana = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+                    const nuevoPlan = { ...planActual.plan };
+                    
+                    diasSemana.forEach((dia, index) => {
+                      if (nuevoPlan[dia]) {
+                        // Rota entre las opciones disponibles
+                        const opcion = parsedReply.opciones[index % parsedReply.opciones.length];
+                        nuevoPlan[dia][parsedReply.comida] = {
+                          nombre: opcion,
+                          calorias: parsedReply.calorias_por_opcion || 400,
+                          proteinas: parsedReply.proteinas_por_opcion || 20,
+                          carbohidratos: parsedReply.carbohidratos_por_opcion || 45,
+                          grasas: parsedReply.grasas_por_opcion || 12
+                        };
+                      }
+                    });
+                    
+                    // Guardar plan actualizado
+                    await supabase.from("planes_comida")
+                      .update({ plan: nuevoPlan })
+                      .eq("id", planActual.id);
+                      
+                    showToast(`✅ ${parsedReply.comida}s actualizados en todos los días del menú`);
+                  }
+                } else if (parsedReply.nombre) {
+                  // Caso normal: día específico
+                  const { data: menuActual } = await supabase
+                    .from("planes_comida")
+                    .select("plan")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .single();
+
+                  if (menuActual?.plan) {
+                    const planActualizado = {
+                      ...menuActual.plan,
+                      [parsedReply.dia]: {
+                        ...menuActual.plan[parsedReply.dia],
+                        [parsedReply.comida]: {
+                          nombre: parsedReply.nombre,
+                          calorias: parsedReply.calorias || 0,
+                          proteinas: parsedReply.proteinas || 0,
+                          carbohidratos: parsedReply.carbohidratos || 0,
+                          grasas: parsedReply.grasas || 0
+                        }
+                      }
+                    };
+
+                    await supabase
+                      .from("planes_comida")
+                      .update({ plan: planActualizado })
+                      .eq("user_id", userId);
+                      
+                    showToast(`✅ ${parsedReply.comida} de ${parsedReply.dia} actualizado`);
+                  }
                 }
               }
               break;
