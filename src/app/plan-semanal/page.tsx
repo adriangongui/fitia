@@ -119,6 +119,31 @@ export default function PlanSemanalPage() {
       const nuevoPlan = await response.json();
       setPlan(nuevoPlan.plan);
       setPlanGuardado(false);
+      
+      // Guardar automáticamente después de generar
+      try {
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Lunes
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const { error } = await supabase
+          .from("planes_comida")
+          .upsert({
+            user_id: userId,
+            semana_inicio: startOfWeek.toISOString(),
+            plan: nuevoPlan.plan,
+            objetivo: "generado_por_chat"
+          }, { onConflict: "user_id, semana_inicio" });
+
+        if (!error) {
+          setPlanGuardado(true);
+          console.log("Plan guardado automáticamente");
+        } else {
+          console.error("Error guardando plan automático:", error);
+        }
+      } catch (error) {
+        console.error("Error guardando plan automático:", error);
+      }
     } catch (error) {
       console.error("Error:", error);
       alert("Error al generar el plan. Por favor, inténtalo de nuevo.");
@@ -131,29 +156,45 @@ export default function PlanSemanalPage() {
     if (!userId || !plan) return;
 
     setLoading(true);
+    console.log("Guardando plan...");
+    
     try {
       const startOfWeek = new Date();
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Lunes
       startOfWeek.setHours(0, 0, 0, 0);
 
+      // Intentar upsert con onConflict correcto
       const { error } = await supabase
         .from("planes_comida")
         .upsert({
           user_id: userId,
           semana_inicio: startOfWeek.toISOString(),
           plan: plan,
-          objetivo: "plan_semanal"
-        });
+          objetivo: "generado_por_chat"
+        }, { onConflict: "user_id, semana_inicio" });
 
       if (error) {
-        throw error;
+        console.error("Error en upsert, intentando insert:", error);
+        // Si falla upsert, intentar insert normal
+        const { error: insertError } = await supabase
+          .from("planes_comida")
+          .insert({
+            user_id: userId,
+            semana_inicio: startOfWeek.toISOString(),
+            plan: plan,
+            objetivo: "generado_por_chat"
+          });
+        
+        if (insertError) {
+          throw insertError;
+        }
       }
 
       setPlanGuardado(true);
-      alert("Plan guardado exitosamente");
+      alert("✅ Plan guardado exitosamente");
     } catch (error) {
       console.error("Error guardando plan:", error);
-      alert("Error al guardar el plan");
+      alert("❌ Error al guardar el plan");
     } finally {
       setLoading(false);
     }

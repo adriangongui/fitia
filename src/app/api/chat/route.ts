@@ -129,6 +129,14 @@ ${contextoHoy ? "=== CONTEXTO RECIENTE ===\n" + contextoHoy : ""}
 ${menuTexto}
 ${pesoTexto}
 
+Tienes acceso a todas las secciones de FitIA y puedes ejecutar acciones en ellas:
+- MENÚ SEMANAL: Si el usuario pide crear o regenerar su menú semanal, genera un plan completo en JSON y devuelve: {"accion":"guardar_menu_semanal","plan":{JSON_COMPLETO_7_DIAS}}
+  El JSON debe tener esta estructura exacta para los 7 días (lunes,martes,miercoles,jueves,viernes,sabado,domingo), cada uno con desayuno,media_manana,almuerzo,merienda,cena, cada comida con nombre,calorias,proteinas,carbohidratos,grasas.
+- PESO: Si el usuario dice su peso → {"accion":"registrar_peso","peso":X}
+- SUPLEMENTOS: Si pide añadir suplemento → {"accion":"añadir_suplemento","nombre":"X","dosis":"X","momento":"X"}
+- MENÚ DÍA: Si pide cambiar una comida → {"accion":"actualizar_menu","dia":"X","comida":"X","nombre":"X","calorias":X,"proteinas":X,"carbohidratos":X,"grasas":X}
+Cuando ejecutes una acción, avisa al usuario de lo que has hecho.
+
 Cuando el usuario te pida modificar su menú semanal, registrar su peso, o añadir un suplemento, incluye AL FINAL de tu respuesta (después del texto normal) el JSON de acción correspondiente SIN explicarlo. El usuario no verá el JSON.
 Ejemplos:
 - 'Anota que peso 76kg' → responde normal + {"accion":"registrar_peso","peso":76}

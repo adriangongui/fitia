@@ -189,6 +189,26 @@ export default function ChatPage() {
                 showToast(`✅ Suplemento ${parsedReply.nombre} añadido`);
               }
               return;
+
+            case "guardar_menu_semanal":
+              if (parsedReply.plan) {
+                // Obtener fecha del lunes de esta semana
+                const startOfWeek = new Date();
+                startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Lunes
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                await supabase
+                  .from("planes_comida")
+                  .upsert({
+                    user_id: userId,
+                    semana_inicio: startOfWeek.toISOString(),
+                    plan: parsedReply.plan,
+                    objetivo: "generado_por_chat"
+                  }, { onConflict: "user_id, semana_inicio" });
+                
+                showToast("✅ Menú semanal guardado en tu pestaña Menú Semanal");
+              }
+              return;
           }
         } catch (error) {
           console.error("Error ejecutando acción:", error);

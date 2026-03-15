@@ -36,6 +36,7 @@ export default function HistorialPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [comidas, setComidas] = useState<Comida[]>([]);
+  const [entrenamientos, setEntrenamientos] = useState<any[]>([]);
   const [objetivosPersonales, setObjetivosPersonales] = useState({ kcal: 2400, p: 160, c: 260, g: 75 });
 
   const nombreCorto = useMemo(() => {
@@ -191,20 +192,34 @@ export default function HistorialPage() {
         const fechaInicio = new Date();
         fechaInicio.setDate(fechaInicio.getDate() - 30);
         
-        const { data, error } = await supabase
+        const { data: comidasData, error: comidasError } = await supabase
           .from("analisis")
           .select("*")
           .eq("user_id", userId)
           .gte("created_at", fechaInicio.toISOString())
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Error cargando comidas:", error);
+        // Cargar entrenamientos de los últimos 30 días
+        const { data: entrenamientosData, error: entrenamientosError } = await supabase
+          .from("entrenamientos")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("created_at", fechaInicio.toISOString())
+          .order("created_at", { ascending: false });
+
+        if (comidasError) {
+          console.error("Error cargando comidas:", comidasError);
         } else {
-          setComidas(data || []);
+          setComidas(comidasData || []);
+        }
+
+        if (entrenamientosError) {
+          console.error("Error cargando entrenamientos:", entrenamientosError);
+        } else {
+          setEntrenamientos(entrenamientosData || []);
         }
       } catch (error) {
-        console.error("Error cargando comidas:", error);
+        console.error("Error cargando datos:", error);
       } finally {
         setLoadingData(false);
       }
@@ -353,6 +368,11 @@ export default function HistorialPage() {
               {/* DETALLES DEL DÍA SELECCIONADO */}
               {selectedDay && (() => {
                 const resumen = resumenesMensuales.find(r => r.fecha.toDateString() === selectedDay.toDateString());
+                const entrenamientosDia = entrenamientos.filter(entrenamiento => {
+                  const entrenamientoFecha = new Date(entrenamiento.created_at);
+                  return entrenamientoFecha.toDateString() === selectedDay.toDateString();
+                });
+
                 if (!resumen || resumen.comidas.length === 0) return null;
 
                 return (
@@ -361,29 +381,56 @@ export default function HistorialPage() {
                       {selectedDay.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
                     </h3>
                     
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-zinc-400">Calorías:</span>
-                          <div className="font-medium text-zinc-100">{resumen.totalCalorias} / {resumen.objetivoCalorias}</div>
+                    <div className="space-y-6">
+                      {/* Sección Comidas */}
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                          🍽️ Comidas del día
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-zinc-400">Calorías:</span>
+                            <div className="font-medium text-zinc-100">{resumen.totalCalorias} / {resumen.objetivoCalorias}</div>
+                          </div>
+                          <div>
+                            <span className="text-zinc-400">Proteínas:</span>
+                            <div className="font-medium text-zinc-100">{resumen.totalProteinas}g</div>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-zinc-400">Proteínas:</span>
-                          <div className="font-medium text-zinc-100">{resumen.totalProteinas}g</div>
+                        <div className="space-y-2">
+                          {resumen.comidas.map((comida, index) => (
+                            <div key={comida.id} className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3">
+                              <div className="font-medium text-zinc-100 text-sm">{comida.nombre_plato}</div>
+                              <div className="text-xs text-zinc-400 mt-1">
+                                {comida.calorias} kcal | {comida.proteinas}g P | {comida.carbohidratos}g C | {comida.grasas}g G
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-zinc-300">Comidas del día:</h4>
-                        {resumen.comidas.map((comida, index) => (
-                          <div key={comida.id} className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3">
-                            <div className="font-medium text-zinc-100 text-sm">{comida.nombre_plato}</div>
-                            <div className="text-xs text-zinc-400 mt-1">
-                              {comida.calorias} kcal | {comida.proteinas}g P | {comida.carbohidratos}g C | {comida.grasas}g G
-                            </div>
+                      {/* Sección Entrenamientos */}
+                      {entrenamientosDia.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                            💪 Entrenamientos del día
+                          </h4>
+                          <div className="space-y-2">
+                            {entrenamientosDia.map((entrenamiento, index) => (
+                              <div key={entrenamiento.id} className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3">
+                                <div className="font-medium text-zinc-100 text-sm">{entrenamiento.tipo}</div>
+                                <div className="text-xs text-zinc-400 mt-1">
+                                  {entrenamiento.intensidad} • {entrenamiento.duracion} min
+                                  {entrenamiento.notas && ` • ${entrenamiento.notas}`}
+                                </div>
+                                <div className="text-xs text-[#b6f542] mt-1">
+                                  ~{Math.round(entrenamiento.duracion * 8)} kcal quemadas
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
