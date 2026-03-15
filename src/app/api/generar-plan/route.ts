@@ -183,7 +183,7 @@ Estructura JSON exacta para los 7 días:
     console.log("Respuesta de Groq:", text);
 
     // Extraer JSON de la respuesta
-    let planSemanal;
+    let planSemanal: Record<string, any>;
     try {
       const texto = text || "";
       const jsonMatch = texto.match(/\{[\s\S]*\}/);
