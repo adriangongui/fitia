@@ -93,7 +93,13 @@ function calcularCaloriasHarrisBenedict(peso: number, altura: number, edad: numb
 
 export async function POST(request: NextRequest) {
   try {
-    const { user_id } = await request.json();
+    const { 
+      user_id, 
+      calorias_objetivo, 
+      proteinas_objetivo, 
+      carbohidratos_objetivo, 
+      grasas_objetivo 
+    } = await request.json();
 
     if (!user_id) {
       return NextResponse.json({ error: "user_id es requerido" }, { status: 400 });
@@ -101,33 +107,84 @@ export async function POST(request: NextRequest) {
 
     console.log("Generando plan para user_id:", user_id);
 
-    // Cargar perfil del usuario
-    const { data: perfilData } = await supabase
-      .from("perfiles")
-      .select("*")
-      .eq("user_id", user_id)
-      .maybeSingle();
-
-    let perfil = perfilData;
+    // Si vienen los macros del frontend, usarlos directamente
+    let caloriasDiarias, proteinasGramos, grasasGramos, carbohidratosGramos;
+    let perfil: any;
     
-    // Si no hay perfil, usar valores por defecto
-    if (!perfil) {
-      console.log("Perfil no encontrado, usando valores por defecto");
-      perfil = {
-        peso: 75,
-        altura: 175,
-        edad: 25,
-        sexo: "hombre",
-        actividad: "moderado",
-        objetivo: "mantenimiento",
-        deporte: "gimnasio"
-      };
-    }
+    if (calorias_objetivo && proteinas_objetivo && carbohidratos_objetivo && grasas_objetivo) {
+      console.log("Usando macros del frontend");
+      caloriasDiarias = calorias_objetivo;
+      proteinasGramos = proteinas_objetivo;
+      carbohidratosGramos = carbohidratos_objetivo;
+      grasasGramos = grasas_objetivo;
+      
+      // Cargar perfil solo para datos adicionales (no para cálculo)
+      const { data: perfilData } = await supabase
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", user_id)
+        .maybeSingle();
 
-    console.log("Perfil encontrado:", perfil);
-    console.log("Perfil cargado:", JSON.stringify(perfil));
-    console.log("Peso:", perfil?.peso, "Altura:", perfil?.altura, "Edad:", perfil?.edad, "Sexo:", perfil?.sexo);
-    console.log("Actividad:", perfil?.actividad, "Objetivo:", perfil?.objetivo);
+      perfil = perfilData || {
+        objetivo: "mantenimiento",
+        deporte: "gimnasio",
+        actividad: "moderado"
+      };
+
+      console.log("Macros recibidos del frontend:", {
+        calorias: caloriasDiarias,
+        proteinas: proteinasGramos,
+        carbohidratos: carbohidratosGramos,
+        grasas: grasasGramos
+      });
+    } else {
+      console.log("Calculando macros con Harris-Benedict (fallback)");
+      
+      // Cargar perfil para cálculo
+      const { data: perfilData } = await supabase
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      perfil = perfilData;
+      
+      // Si no hay perfil, usar valores por defecto
+      if (!perfil) {
+        console.log("Perfil no encontrado, usando valores por defecto");
+        perfil = {
+          peso: 75,
+          altura: 175,
+          edad: 25,
+          sexo: "hombre",
+          actividad: "moderado",
+          objetivo: "mantenimiento",
+          deporte: "gimnasio"
+        };
+      }
+
+      console.log("Perfil encontrado:", perfil);
+      console.log("Perfil cargado:", JSON.stringify(perfil));
+      console.log("Peso:", perfil?.peso, "Altura:", perfil?.altura, "Edad:", perfil?.edad, "Sexo:", perfil?.sexo);
+      console.log("Actividad:", perfil?.actividad, "Objetivo:", perfil?.objetivo);
+
+      // Calcular calorías objetivo
+      caloriasDiarias = calcularCaloriasHarrisBenedict(
+        perfil.peso,
+        perfil.altura,
+        perfil.edad,
+        perfil.sexo,
+        perfil.actividad,
+        perfil.objetivo
+      );
+
+      console.log("Calorías diarias calculadas:", caloriasDiarias);
+
+      // Calcular distribución de macros
+      proteinasGramos = Math.round((perfil.peso * 1.8)); // 1.8g por kg para deportistas
+      grasasGramos = Math.round((caloriasDiarias * 0.25) / 9); // 25% de calorías
+      carbohidratosGramos = Math.round((caloriasDiarias - (proteinasGramos * 4) - (grasasGramos * 9)) / 4);
+    }
 
     // Cargar suplementos activos
     const { data: suplementos, error: errorSuplementos } = await supabase
@@ -138,26 +195,9 @@ export async function POST(request: NextRequest) {
 
     console.log("Suplementos encontrados:", suplementos);
 
-    // Calcular calorías objetivo
-    const caloriasDiarias = calcularCaloriasHarrisBenedict(
-      perfil.peso,
-      perfil.altura,
-      perfil.edad,
-      perfil.sexo,
-      perfil.actividad,
-      perfil.objetivo
-    );
-
-    console.log("Calorías diarias calculadas:", caloriasDiarias);
-
-    // Calcular distribución de macros
-    const proteinasGramos = Math.round((perfil.peso * 1.8)); // 1.8g por kg para deportistas
-    const grasasGramos = Math.round((caloriasDiarias * 0.25) / 9); // 25% de calorías
-    const carbohidratosGramos = Math.round((caloriasDiarias - (proteinasGramos * 4) - (grasasGramos * 9)) / 4);
-
     // Construir el prompt para la IA
     const suplementosTexto = suplementos && suplementos.length > 0 
-      ? suplementos.map(s => `- ${s.nombre} (${s.dosis}) en ${s.momento}`).join('\n')
+      ? suplementos.map((s: any) => `- ${s.nombre} (${s.dosis}) en ${s.momento}`).join('\n')
       : "No hay suplementos activos";
 
     const prompt = `Eres un nutricionista deportivo experto. Genera un plan de comidas semanal en JSON puro sin texto adicional.
@@ -165,13 +205,13 @@ export async function POST(request: NextRequest) {
 DATOS DEL USUARIO:
 - Objetivo: ${perfil.objetivo}
 - Calorías DIARIAS EXACTAS a alcanzar: ${Math.round(caloriasDiarias)} kcal
-- Proteínas diarias mínimas: ${Math.round(perfil.peso * 2)}g
+- Proteínas diarias mínimas: ${Math.round(proteinasGramos)}g
 - Deporte: ${perfil.deporte || 'gimnasio'}
 - Actividad: ${perfil.actividad}
 
 REGLAS OBLIGATORIAS:
 - La suma de calorías de las 5 comidas debe ser EXACTAMENTE ${Math.round(caloriasDiarias)} kcal cada día
-- Las proteínas totales deben superar ${Math.round(perfil.peso * 2)}g cada día
+- Las proteínas totales deben superar ${Math.round(proteinasGramos)}g cada día
 - Comidas típicas españolas mediterráneas
 - Varía los platos cada día
 - IMPORTANTE: Cada día DEBE tener exactamente 5 comidas (desayuno, media_manana, almuerzo, merienda, cena). La suma total de calorías de cada día debe ser aproximadamente ${Math.round(caloriasDiarias)} kcal.

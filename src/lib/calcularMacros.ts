@@ -20,9 +20,9 @@ export function calcularMacros(
 
   // 2. Multiplicador de actividad
   let multiplicador = 1.2; // sedentario
-  if (actividad === "moderado") multiplicador = 1.375;
-  if (actividad === "activo") multiplicador = 1.55;
-  if (actividad === "muy_activo") multiplicador = 1.725;
+  if (actividad === "moderado") multiplicador = 1.55;
+  if (actividad === "activo") multiplicador = 1.725;
+  if (actividad === "muy_activo") multiplicador = 1.9;
 
   let tdee = bmr * multiplicador;
 

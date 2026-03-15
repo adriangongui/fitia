@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
+import { calcularMacros } from "@/lib/calcularMacros";
 
 type Comida = {
   nombre: string;
@@ -106,10 +107,44 @@ export default function PlanSemanalPage() {
 
     setLoading(true);
     try {
+      // Cargar perfil del usuario
+      const { data: perfilData } = await supabase
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (!perfilData) {
+        alert("No se encontró tu perfil. Por favor, completa tus datos en la página de perfil.");
+        return;
+      }
+
+      // Calcular macros con Harris-Benedict
+      const macros = calcularMacros(
+        perfilData.peso,
+        perfilData.altura,
+        perfilData.edad,
+        perfilData.sexo,
+        perfilData.actividad,
+        perfilData.objetivo
+      );
+
+      console.log("Calorías enviadas al API:", macros.calorias);
+      console.log("Macros calculados:", macros);
+
+      // Mostrar mensaje de generación
+      alert(`Generando menú para ${macros.calorias} kcal / ${macros.proteinas}g proteína`);
+
       const response = await fetch("/api/generar-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+        body: JSON.stringify({ 
+          user_id: userId,
+          calorias_objetivo: macros.calorias,
+          proteinas_objetivo: macros.proteinas,
+          carbohidratos_objetivo: macros.carbohidratos,
+          grasas_objetivo: macros.grasas
+        }),
       });
 
       if (!response.ok) {
