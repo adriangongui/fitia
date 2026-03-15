@@ -150,42 +150,32 @@ export async function POST(request: NextRequest) {
       ? suplementos.map(s => `- ${s.nombre} (${s.dosis}) en ${s.momento}`).join('\n')
       : "No hay suplementos activos";
 
-    const prompt = `Eres un nutricionista deportivo experto. Genera un plan de comidas semanal en formato JSON puro, sin texto adicional, sin markdown, sin explicaciones. Solo el JSON.
+    const prompt = `Eres un nutricionista deportivo experto. Genera un plan de comidas semanal en JSON puro sin texto adicional.
 
-Datos del usuario:
-Objetivo del usuario: ${perfil.objetivo} (ganar_musculo=+300kcal, perder_grasa=-400kcal, mantenimiento=0)
-Calorías diarias objetivo: ${Math.round(caloriasDiarias)}kcal
-Proteínas objetivo: ${Math.round(perfil.peso * 2)}g/día
-Deporte: ${perfil.deporte}
-Adapta TODAS las comidas y cantidades a este objetivo específico.
+DATOS DEL USUARIO:
+- Objetivo: ${perfil.objetivo}
+- Calorías DIARIAS EXACTAS a alcanzar: ${Math.round(caloriasDiarias)} kcal
+- Proteínas diarias mínimas: ${Math.round(perfil.peso * 2)}g
+- Deporte: ${perfil.deporte || 'gimnasio'}
+- Actividad: ${perfil.actividad}
 
-La estructura debe ser EXACTAMENTE esta:
+REGLAS OBLIGATORIAS:
+- La suma de calorías de las 5 comidas debe ser EXACTAMENTE ${Math.round(caloriasDiarias)} kcal cada día
+- Las proteínas totales deben superar ${Math.round(perfil.peso * 2)}g cada día
+- Comidas típicas españolas mediterráneas
+- Varía los platos cada día
+
+Estructura JSON exacta para los 7 días:
 {
   "lunes": {
-    "desayuno": {"nombre": "Nombre del plato", "calorias": 400, "proteinas": 30, "carbohidratos": 45, "grasas": 12},
-    "media_manana": {"nombre": "Nombre", "calorias": 200, "proteinas": 10, "carbohidratos": 25, "grasas": 5},
-    "almuerzo": {"nombre": "Nombre", "calorias": 600, "proteinas": 40, "carbohidratos": 60, "grasas": 20},
-    "merienda": {"nombre": "Nombre", "calorias": 200, "proteinas": 15, "carbohidratos": 20, "grasas": 5},
-    "cena": {"nombre": "Nombre", "calorias": 500, "proteinas": 35, "carbohidratos": 45, "grasas": 15}
+    "desayuno": {"nombre": "nombre", "calorias": X, "proteinas": X, "carbohidratos": X, "grasas": X},
+    "media_manana": {"nombre": "nombre", "calorias": X, "proteinas": X, "carbohidratos": X, "grasas": X},
+    "almuerzo": {"nombre": "nombre", "calorias": X, "proteinas": X, "carbohidratos": X, "grasas": X},
+    "merienda": {"nombre": "nombre", "calorias": X, "proteinas": X, "carbohidratos": X, "grasas": X},
+    "cena": {"nombre": "nombre", "calorias": X, "proteinas": X, "carbohidratos": X, "grasas": X}
   },
-  "martes": { ... mismo formato },
-  "miercoles": { ... },
-  "jueves": { ... },
-  "viernes": { ... },
-  "sabado": { ... },
-  "domingo": { ... }
-}
-
-Requisitos:
-- Total diario: ${Math.round(caloriasDiarias)}kcal
-- Proteínas: ${Math.round(perfil.peso * 2)}g mínimo
-- Distribución: 5 comidas al día
-- Variedad de alimentos saludables
-- Adaptado al deporte: ${perfil.deporte}
-}
-
-Usuario: objetivo=${perfil.objetivo}, calorias_diarias=${Math.round(caloriasDiarias)}, deporte=${perfil.deporte}
-Adapta las comidas a la dieta mediterránea española. Varía los platos cada día.`;
+  ... misma estructura para martes, miercoles, jueves, viernes, sabado, domingo
+}`;
 
     // Llamar a la API de Groq
     const text = await callGroqAPI(prompt);

@@ -375,7 +375,8 @@ export default function HistorialPage() {
                   return entrenamientoFecha.toDateString() === selectedDay.toDateString();
                 });
 
-                if (!resumen || resumen.comidas.length === 0) return null;
+                // Mostrar si hay comidas O entrenamientos
+                if ((!resumen || resumen.comidas.length === 0) && entrenamientosDia.length === 0) return null;
 
                 return (
                   <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-6">
@@ -385,31 +386,33 @@ export default function HistorialPage() {
                     
                     <div className="space-y-6">
                       {/* Sección Comidas */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                          🍽️ Comidas del día
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-zinc-400">Calorías:</span>
-                            <div className="font-medium text-zinc-100">{resumen.totalCalorias} / {resumen.objetivoCalorias}</div>
-                          </div>
-                          <div>
-                            <span className="text-zinc-400">Proteínas:</span>
-                            <div className="font-medium text-zinc-100">{resumen.totalProteinas}g</div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {resumen.comidas.map((comida, index) => (
-                            <div key={comida.id} className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3">
-                              <div className="font-medium text-zinc-100 text-sm">{comida.nombre_plato}</div>
-                              <div className="text-xs text-zinc-400 mt-1">
-                                {comida.calorias} kcal | {comida.proteinas}g P | {comida.carbohidratos}g C | {comida.grasas}g G
-                              </div>
+                      {resumen && resumen.comidas.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                            🍽️ Comidas del día
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-zinc-400">Calorías:</span>
+                              <div className="font-medium text-zinc-100">{resumen.totalCalorias} / {resumen.objetivoCalorias}</div>
                             </div>
-                          ))}
+                            <div>
+                              <span className="text-zinc-400">Proteínas:</span>
+                              <div className="font-medium text-zinc-100">{resumen.totalProteinas}g</div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {resumen.comidas.map((comida, index) => (
+                              <div key={comida.id} className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 p-3">
+                                <div className="font-medium text-zinc-100 text-sm">{comida.nombre_plato}</div>
+                                <div className="text-xs text-zinc-400 mt-1">
+                                  {comida.calorias} kcal | {comida.proteinas}g P | {comida.carbohidratos}g C | {comida.grasas}g G
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Sección Entrenamientos */}
                       {entrenamientosDia.length > 0 && (
