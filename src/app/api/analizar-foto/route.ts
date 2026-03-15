@@ -3,6 +3,26 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const TABLA_NUTRICIONAL = `
+REFERENCIA NUTRICIONAL POR 100g:
+- Arroz cocido: 130kcal, 2.7g prot, 28g carb, 0.3g gras
+- Pasta cocida: 131kcal, 5g prot, 25g carb, 1g gras
+- Pechuga pollo: 165kcal, 31g prot, 0g carb, 3.6g gras
+- Carne ternera: 250kcal, 26g prot, 0g carb, 15g gras
+- Salmón: 208kcal, 20g prot, 0g carb, 13g gras
+- Huevo entero: 155kcal, 13g prot, 1g carb, 11g gras
+- Pan blanco: 265kcal, 9g prot, 49g carb, 3g gras
+- Patata cocida: 87kcal, 1.9g prot, 20g carb, 0.1g gras
+- Lentejas cocidas: 116kcal, 9g prot, 20g carb, 0.4g gras
+- Garbanzos cocidos: 164kcal, 8.9g prot, 27g carb, 2.6g gras
+- Aceite oliva: 884kcal, 0g prot, 0g carb, 100g gras
+- Aguacate: 160kcal, 2g prot, 9g carb, 15g gras
+- Plátano: 89kcal, 1.1g prot, 23g carb, 0.3g gras
+- Leche entera: 61kcal, 3.2g prot, 4.8g carb, 3.3g gras
+- Yogur natural: 61kcal, 3.5g prot, 4.7g carb, 3.3g gras
+- Queso fresco: 98kcal, 11g prot, 3.4g carb, 4.3g gras
+`;
+
 export async function POST(req: NextRequest) {
   try {
     const { imageBase64, gramos } = await req.json();
@@ -10,13 +30,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No se recibió imagen" }, { status: 400 });
     }
 
-    const promptText = gramos 
-      ? `Eres un nutricionista experto en comida española. Mira la imagen con atención e identifica exactamente qué comida aparece. El plato pesa aproximadamente ${gramos} gramos. Calcula los macros para esa cantidad exacta. Devuelve ÚNICAMENTE este JSON con los valores numéricos reales que hayas calculado, sin texto adicional, sin explicaciones, sin bloques de código markdown:
-{"nombre_plato":"nombre real y específico del plato","calorias":CALCULA_EL_VALOR_REAL,"proteinas":CALCULA_EL_VALOR_REAL,"carbohidratos":CALCULA_EL_VALOR_REAL,"grasas":CALCULA_EL_VALOR_REAL,"confianza":0.85,"hay_comida":true}
-Sustituye CALCULA_EL_VALOR_REAL por el número entero real que estimes para ese plato concreto.`
-      : `Eres un nutricionista experto en comida española. Mira la imagen con atención e identifica exactamente qué comida aparece. Calcula los macronutrientes reales basándote en lo que ves visualmente, teniendo en cuenta el tamaño del plato y las raciones típicas españolas. Devuelve ÚNICAMENTE este JSON con los valores numéricos reales que hayas calculado, sin texto adicional, sin explicaciones, sin bloques de código markdown:
-{"nombre_plato":"nombre real y específico del plato","calorias":CALCULA_EL_VALOR_REAL,"proteinas":CALCULA_EL_VALOR_REAL,"carbohidratos":CALCULA_EL_VALOR_REAL,"grasas":CALCULA_EL_VALOR_REAL,"confianza":0.85,"hay_comida":true}
-Sustituye CALCULA_EL_VALOR_REAL por el número entero real que estimes para ese plato concreto.`;
+    const promptText = `Eres un nutricionista experto con acceso a tablas nutricionales precisas. Analiza la imagen de comida.
+
+${TABLA_NUTRICIONAL}
+
+Pasos para analizar:
+1. Identifica cada ingrediente visible en el plato
+2. Estima el peso en gramos de cada ingrediente basándote en el tamaño visual
+3. Si el usuario ha indicado el peso total (${gramos}g), ajusta proporcionalmente
+4. Calcula los macros usando la tabla nutricional de referencia
+5. Suma todos los ingredientes para obtener el total
+
+Devuelve SOLO este JSON sin texto adicional:
+{
+  'nombre_plato': 'nombre específico del plato',
+  'calorias': NUMERO_CALCULADO,
+  'proteinas': NUMERO_CALCULADO,
+  'carbohidratos': NUMERO_CALCULADO,
+  'grasas': NUMERO_CALCULADO,
+  'ingredientes': 'lista breve de ingredientes estimados con gramos',
+  'confianza': 0.85,
+  'hay_comida': true
+}`;
 
     const response = await groq.chat.completions.create({
       model: "meta-llama/llama-4-scout-17b-16e-instruct",

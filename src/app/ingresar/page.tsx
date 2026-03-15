@@ -13,6 +13,7 @@ type AnalisisComida = {
   proteinas: number;
   carbohidratos: number;
   grasas: number;
+  ingredientes?: string;
   confianza?: number;
 };
 
@@ -526,6 +527,13 @@ export default function IngresarPage() {
                       <p className="mt-1 font-medium text-zinc-100">{formatNumber(ultimoResultado.grasas)}g</p>
                     </div>
                   </div>
+                  {ultimoResultado.ingredientes && (
+                    <div className="mt-3">
+                      <p className="text-xs text-zinc-400">
+                        Ingredientes estimados: {ultimoResultado.ingredientes}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mt-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800/80 p-6 text-center">
