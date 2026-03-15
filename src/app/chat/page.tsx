@@ -105,38 +105,104 @@ export default function ChatPage() {
 
       const data = await res.json();
       
-      // Detectar si la respuesta contiene un JSON especial para registrar peso
-      let parsedReply;
-      try {
-        parsedReply = JSON.parse(data.reply || "{}");
-      } catch {
-        // No es JSON, usar respuesta normal
-      }
-
-      // Si es una acción especial, ejecutarla y no mostrar mensaje
-      if (parsedReply?.accion === "registrar_peso" && parsedReply?.peso) {
+      // Función para mostrar toast
+      const showToast = (message: string) => {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-zinc-800 text-zinc-100 px-4 py-2 rounded-lg shadow-lg z-[9999] animate-pulse';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => document.body.removeChild(toast), 3000);
+      };
+      
+      // Detectar si la respuesta contiene JSON de acción con patrón /\{"accion":[^}]+\}/
+      const actionMatch = data.reply.match(/\{"accion":[^}]+\}/);
+      let parsedReply = null;
+      
+      if (actionMatch) {
         try {
-          const { error } = await supabase
-            .from("registros_peso")
-            .insert([{ user_id: userId, peso: parsedReply.peso }]);
-
-          if (error) throw error;
-
-          // Mostrar confirmación
-          alert(`✅ Peso de ${parsedReply.peso}kg registrado correctamente`);
-          return; // No mostrar el mensaje del asistente
-        } catch (error) {
-          console.error("Error al registrar peso desde chat:", error);
-          alert("Error al registrar peso. Inténtalo de nuevo.");
+          parsedReply = JSON.parse(actionMatch[0]);
+        } catch {
+          // Error al parsear, ignorar
         }
       }
+
+      // Ejecutar acciones especiales
+      if (parsedReply) {
+        try {
+          switch (parsedReply.accion) {
+            case "registrar_peso":
+              if (parsedReply.peso) {
+                await supabase
+                  .from("registros_peso")
+                  .insert([{ user_id: userId, peso: parsedReply.peso }]);
+                showToast(`✅ Peso de ${parsedReply.peso}kg registrado`);
+              }
+              return;
+
+            case "actualizar_menu":
+              if (parsedReply.dia && parsedReply.comida && parsedReply.nombre) {
+                const { data: menuActual } = await supabase
+                  .from("planes_comida")
+                  .select("plan")
+                  .eq("user_id", userId)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .single();
+
+                if (menuActual?.plan) {
+                  const planActualizado = {
+                    ...menuActual.plan,
+                    [parsedReply.dia]: {
+                      ...menuActual.plan[parsedReply.dia],
+                      [parsedReply.comida]: {
+                        nombre: parsedReply.nombre,
+                        calorias: parsedReply.calorias || 0,
+                        proteinas: parsedReply.proteinas || 0,
+                        carbohidratos: parsedReply.carbohidratos || 0,
+                        grasas: parsedReply.grasas || 0
+                      }
+                    }
+                  };
+
+                  await supabase
+                    .from("planes_comida")
+                    .update({ plan: planActualizado })
+                    .eq("user_id", userId);
+                  
+                  showToast(`✅ ${parsedReply.comida} de ${parsedReply.dia} actualizado`);
+                }
+              }
+              return;
+
+            case "añadir_suplemento":
+              if (parsedReply.nombre && parsedReply.dosis) {
+                await supabase
+                  .from("suplementos")
+                  .insert([{
+                    user_id: userId,
+                    nombre: parsedReply.nombre,
+                    dosis: parsedReply.dosis,
+                    momento: parsedReply.momento || "Sin especificar",
+                    activo: true
+                  }]);
+                
+                showToast(`✅ Suplemento ${parsedReply.nombre} añadido`);
+              }
+              return;
+          }
+        } catch (error) {
+          console.error("Error ejecutando acción:", error);
+          showToast("❌ Error al ejecutar la acción");
+        }
+      }
+
+      // Limpiar JSON de la respuesta para el usuario
+      const cleanReply = data.reply.replace(/\{"accion":[^}]+\}/, '').trim();
 
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant" as const,
-        content: parsedReply?.accion === "registrar_peso" 
-          ? `✅ Peso de ${parsedReply.peso}kg registrado correctamente`
-          : (data.reply || ""),
+        content: cleanReply,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

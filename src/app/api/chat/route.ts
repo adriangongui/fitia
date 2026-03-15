@@ -127,7 +127,13 @@ ${perfilTexto}
 ${suplementosTexto}
 ${contextoHoy ? "=== CONTEXTO RECIENTE ===\n" + contextoHoy : ""}
 ${menuTexto}
-${pesoTexto}`;
+${pesoTexto}
+
+Cuando el usuario te pida modificar su menú semanal, registrar su peso, o añadir un suplemento, incluye AL FINAL de tu respuesta (después del texto normal) el JSON de acción correspondiente SIN explicarlo. El usuario no verá el JSON.
+Ejemplos:
+- 'Anota que peso 76kg' → responde normal + {"accion":"registrar_peso","peso":76}
+- 'Soy alérgico al gluten, cambia el lunes almuerzo' → responde normal + {"accion":"actualizar_menu","dia":"lunes","comida":"almuerzo","nombre":"Ensalada mediterránea sin gluten","calorias":380,"proteinas":25,"carbohidratos":40,"grasas":14}
+- 'Añade vitamina D a mis suplementos' → responde normal + {"accion":"añadir_suplemento","nombre":"Vitamina D","dosis":"1000UI","momento":"Con el desayuno"}`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
