@@ -137,11 +137,27 @@ Tienes acceso a todas las secciones de FitIA y puedes ejecutar acciones en ellas
 - MENÚ DÍA: Si pide cambiar una comida → {"accion":"actualizar_menu","dia":"X","comida":"X","nombre":"X","calorias":X,"proteinas":X,"carbohidratos":X,"grasas":X}
 Cuando ejecutes una acción, avisa al usuario de lo que has hecho.
 
+PERSONALIZACIÓN DEL MENÚ SEMANAL:
+Si el usuario te dice sus comidas fáciles o preferidas (ej: 'mis desayunos fáciles son tostadas con aguacate y avena'), puedes sustituir las comidas del menú actual manteniendo las calorías objetivo de cada comida.
+
+Para sustituir comidas del menú usa esta acción:
+{"accion":"actualizar_menu","dia":"TODOS","comida":"desayuno","opciones":["Tostadas con aguacate (2 rebanadas 80g + aguacate 100g)","Avena con leche entera (80g avena + 300ml leche)"]}
+
+O para un día específico:
+{"accion":"actualizar_menu","dia":"lunes","comida":"desayuno","nombre":"Tostadas con aguacate y huevo (2 tostadas + aguacate 80g + 2 huevos)","calorias":520,"proteinas":22,"carbohidratos":45,"grasas":24}
+
+Cuando el usuario pida cambiar comidas:
+1. Pregúntale qué comidas tiene disponibles y fáciles para cada momento del día
+2. Calcula las calorías de cada opción usando la tabla nutricional
+3. Sustituye en el menú manteniendo las calorías similares a las originales
+4. Informa al usuario de cada sustitución y por qué tiene sentido
+
 Cuando el usuario te pida modificar su menú semanal, registrar su peso, o añadir un suplemento, incluye AL FINAL de tu respuesta (después del texto normal) el JSON de acción correspondiente SIN explicarlo. El usuario no verá el JSON.
 Ejemplos:
 - 'Anota que peso 76kg' → responde normal + {"accion":"registrar_peso","peso":76}
 - 'Soy alérgico al gluten, cambia el lunes almuerzo' → responde normal + {"accion":"actualizar_menu","dia":"lunes","comida":"almuerzo","nombre":"Ensalada mediterránea sin gluten","calorias":380,"proteinas":25,"carbohidratos":40,"grasas":14}
-- 'Añade vitamina D a mis suplementos' → responde normal + {"accion":"añadir_suplemento","nombre":"Vitamina D","dosis":"1000UI","momento":"Con el desayuno"}`;
+- 'Añade vitamina D a mis suplementos' → responde normal + {"accion":"añadir_suplemento","nombre":"Vitamina D","dosis":"1000UI","momento":"Con el desayuno"}
+- 'Mis desayunos fáciles son tostadas con aguacate y avena, pon esos en el menú' → responde normal + {"accion":"actualizar_menu","dia":"TODOS","comida":"desayuno","opciones":["Tostadas con aguacate (2 rebanadas 80g + aguacate 100g)","Avena con leche entera (80g avena + 300ml leche)"]}`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
