@@ -210,11 +210,13 @@ DATOS DEL USUARIO:
 - Actividad: ${perfil.actividad}
 
 REGLAS OBLIGATORIAS:
-- La suma de calorías de las 5 comidas debe ser EXACTAMENTE ${Math.round(caloriasDiarias)} kcal cada día
-- Las proteínas totales deben superar ${Math.round(proteinasGramos)}g cada día
-- Comidas típicas españolas mediterráneas
-- Varía los platos cada día
-- IMPORTANTE: Cada día DEBE tener exactamente 5 comidas (desayuno, media_manana, almuerzo, merienda, cena). La suma total de calorías de cada día debe ser aproximadamente ${Math.round(caloriasDiarias)} kcal.
+- Cada plato DEBE incluir la cantidad en gramos en el nombre. Ejemplo: 'Pechuga de pollo a la plancha (250g)' no solo 'Pechuga de pollo'
+- Las calorías de cada comida deben ser REALES y corresponder a la cantidad indicada
+- La suma de calorías de las 5 comidas DEBE ser exactamente ${Math.round(caloriasDiarias)} kcal
+- Si necesitas más calorías, aumenta las cantidades: más arroz, más aceite, más frutos secos, batidos de proteínas con leche entera, etc.
+- Proteínas totales del día: mínimo ${Math.round(proteinasGramos)}g
+- Para alcanzar ${Math.round(caloriasDiarias)} kcal con alimentos normales, usa raciones grandes y añade snacks calóricos saludables como: frutos secos (30-40g), aceite de oliva en las comidas, aguacate, batidos con leche entera y plátano
+- NO pongas platos con pocas calorías si el objetivo es alto. Ejemplo MAL: 'Ensalada (150g) = 50kcal'. Ejemplo BIEN: 'Ensalada con atún, huevo, aguacate y aceite (350g) = 450kcal'
 
 Estructura JSON exacta para los 7 días:
 {
