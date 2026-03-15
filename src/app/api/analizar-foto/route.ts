@@ -43,14 +43,14 @@ Pasos para analizar:
 
 Devuelve SOLO este JSON sin texto adicional:
 {
-  'nombre_plato': 'nombre específico del plato',
-  'calorias': NUMERO_CALCULADO,
-  'proteinas': NUMERO_CALCULADO,
-  'carbohidratos': NUMERO_CALCULADO,
-  'grasas': NUMERO_CALCULADO,
-  'ingredientes': 'lista breve de ingredientes estimados con gramos',
-  'confianza': 0.85,
-  'hay_comida': true
+  "nombre_plato": "nombre específico del plato",
+  "calorias": NUMERO_CALCULADO,
+  "proteinas": NUMERO_CALCULADO,
+  "carbohidratos": NUMERO_CALCULADO,
+  "grasas": NUMERO_CALCULADO,
+  "ingredientes": "lista breve de ingredientes estimados con gramos",
+  "confianza": 0.85,
+  "hay_comida": true
 }`;
 
     const response = await groq.chat.completions.create({
