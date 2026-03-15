@@ -26,7 +26,7 @@ async function callGroqAPI(prompt: string) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 4000,
     }),
   });
 
@@ -164,6 +164,7 @@ REGLAS OBLIGATORIAS:
 - Las proteínas totales deben superar ${Math.round(perfil.peso * 2)}g cada día
 - Comidas típicas españolas mediterráneas
 - Varía los platos cada día
+- IMPORTANTE: Cada día DEBE tener exactamente 5 comidas (desayuno, media_manana, almuerzo, merienda, cena). La suma total de calorías de cada día debe ser aproximadamente ${Math.round(caloriasDiarias)} kcal.
 
 Estructura JSON exacta para los 7 días:
 {
@@ -186,10 +187,61 @@ Estructura JSON exacta para los 7 días:
     try {
       const texto = text || "";
       const jsonMatch = texto.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No se pudo parsear el plan");
+      if (!jsonMatch) {
+        throw new Error("No se encontró JSON en la respuesta");
+      }
       planSemanal = JSON.parse(jsonMatch[0]);
       
       console.log("Plan parseado:", JSON.stringify(planSemanal).substring(0, 200));
+
+      // Validar que tiene los 7 días requeridos
+      const diasRequeridos = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+      const diasFaltantes = diasRequeridos.filter(d => !planSemanal[d]);
+      if (diasFaltantes.length > 0) {
+        console.error("Días faltantes:", diasFaltantes);
+        // Completar con el primer día disponible
+        const diaBase = planSemanal[Object.keys(planSemanal)[0]];
+        diasFaltantes.forEach(dia => { 
+          planSemanal[dia] = {
+            desayuno: { 
+              nombre: `${diaBase.desayuno.nombre} variado`, 
+              calorias: diaBase.desayuno.calorias, 
+              proteinas: diaBase.desayuno.proteinas, 
+              carbohidratos: diaBase.desayuno.carbohidratos, 
+              grasas: diaBase.desayuno.grasas 
+            },
+            media_manana: { 
+              nombre: `${diaBase.media_manana.nombre} variado`, 
+              calorias: diaBase.media_manana.calorias, 
+              proteinas: diaBase.media_manana.proteinas, 
+              carbohidratos: diaBase.media_manana.carbohidratos, 
+              grasas: diaBase.media_manana.grasas 
+            },
+            almuerzo: { 
+              nombre: `${diaBase.almuerzo.nombre} variado`, 
+              calorias: diaBase.almuerzo.calorias, 
+              proteinas: diaBase.almuerzo.proteinas, 
+              carbohidratos: diaBase.almuerzo.carbohidratos, 
+              grasas: diaBase.almuerzo.grasas 
+            },
+            merienda: { 
+              nombre: `${diaBase.merienda.nombre} variado`, 
+              calorias: diaBase.merienda.calorias, 
+              proteinas: diaBase.merienda.proteinas, 
+              carbohidratos: diaBase.merienda.carbohidratos, 
+              grasas: diaBase.merienda.grasas 
+            },
+            cena: { 
+              nombre: `${diaBase.cena.nombre} variado`, 
+              calorias: diaBase.cena.calorias, 
+              proteinas: diaBase.cena.proteinas, 
+              carbohidratos: diaBase.cena.carbohidratos, 
+              grasas: diaBase.cena.grasas 
+            }
+          };
+        });
+        console.log("Plan completado con días faltantes");
+      }
     } catch (error) {
       console.error("Error parseando JSON:", error);
       return NextResponse.json({ error: "Error generando el plan semanal" }, { status: 500 });
