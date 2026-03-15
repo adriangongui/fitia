@@ -83,6 +83,11 @@ function calcularCaloriasHarrisBenedict(peso: number, altura: number, edad: numb
       caloriasObjetivo = caloriasMantenimiento;
   }
 
+  console.log("TMB calculada:", tmb);
+  console.log("Factor actividad:", factorActividad);
+  console.log("Calorías mantenimiento:", caloriasMantenimiento);
+  console.log("Calorías objetivo FINAL:", caloriasObjetivo);
+
   return Math.max(1200, caloriasObjetivo); // Mínimo 1200 kcal
 }
 
@@ -120,6 +125,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Perfil encontrado:", perfil);
+    console.log("Perfil cargado:", JSON.stringify(perfil));
+    console.log("Peso:", perfil?.peso, "Altura:", perfil?.altura, "Edad:", perfil?.edad, "Sexo:", perfil?.sexo);
+    console.log("Actividad:", perfil?.actividad, "Objetivo:", perfil?.objetivo);
 
     // Cargar suplementos activos
     const { data: suplementos, error: errorSuplementos } = await supabase
@@ -139,6 +147,8 @@ export async function POST(request: NextRequest) {
       perfil.actividad,
       perfil.objetivo
     );
+
+    console.log("Calorías diarias calculadas:", caloriasDiarias);
 
     // Calcular distribución de macros
     const proteinasGramos = Math.round((perfil.peso * 1.8)); // 1.8g por kg para deportistas
