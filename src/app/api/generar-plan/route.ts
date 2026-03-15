@@ -186,6 +186,22 @@ export async function POST(request: NextRequest) {
       carbohidratosGramos = Math.round((caloriasDiarias - (proteinasGramos * 4) - (grasasGramos * 9)) / 4);
     }
 
+    // Calcular distribución de calorías por comida
+    const desayunoKcal = Math.round(caloriasDiarias * 0.20);
+    const mediaMananaKcal = Math.round(caloriasDiarias * 0.15);
+    const almuerzoKcal = Math.round(caloriasDiarias * 0.35);
+    const meriendaKcal = Math.round(caloriasDiarias * 0.10);
+    const cenaKcal = Math.round(caloriasDiarias * 0.20);
+
+    console.log("Distribución calorías por comida:", {
+      desayuno: desayunoKcal,
+      mediaManana: mediaMananaKcal,
+      almuerzo: almuerzoKcal,
+      merienda: meriendaKcal,
+      cena: cenaKcal,
+      total: desayunoKcal + mediaMananaKcal + almuerzoKcal + meriendaKcal + cenaKcal
+    });
+
     // Cargar suplementos activos
     const { data: suplementos, error: errorSuplementos } = await supabase
       .from("suplementos")
@@ -217,6 +233,15 @@ REGLAS OBLIGATORIAS:
 - Proteínas totales del día: mínimo ${Math.round(proteinasGramos)}g
 - Para alcanzar ${Math.round(caloriasDiarias)} kcal con alimentos normales, usa raciones grandes y añade snacks calóricos saludables como: frutos secos (30-40g), aceite de oliva en las comidas, aguacate, batidos con leche entera y plátano
 - NO pongas platos con pocas calorías si el objetivo es alto. Ejemplo MAL: 'Ensalada (150g) = 50kcal'. Ejemplo BIEN: 'Ensalada con atún, huevo, aguacate y aceite (350g) = 450kcal'
+
+DISTRIBUCIÓN CALÓRICA OBLIGATORIA POR COMIDA:
+- Desayuno: ${desayunoKcal} kcal (ejemplo: avena 100g + leche entera 300ml + frutos secos 30g + plátano)
+- Media mañana: ${mediaMananaKcal} kcal (ejemplo: batido proteína + leche entera 250ml + plátano)
+- Comida: ${almuerzoKcal} kcal (ejemplo: arroz 200g cocido + pollo 300g + aceite oliva 20ml + verduras)
+- Merienda: ${meriendaKcal} kcal (ejemplo: pan integral 60g + aguacate 100g + atún 80g)
+- Cena: ${cenaKcal} kcal (ejemplo: salmón 250g + patatas 200g + aceite oliva 15ml)
+
+IMPORTANTE: Las calorías que pongas en el JSON deben coincidir con estas cantidades. Si el plato no llega, añade más cantidad o un acompañamiento.
 
 Estructura JSON exacta para los 7 días:
 {
