@@ -207,6 +207,8 @@ export default function HistorialPage() {
           .gte("created_at", fechaInicio.toISOString())
           .order("created_at", { ascending: false });
 
+        console.log("Entrenamientos cargados:", entrenamientosData?.length || 0);
+
         if (comidasError) {
           console.error("Error cargando comidas:", comidasError);
         } else {

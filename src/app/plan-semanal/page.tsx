@@ -45,7 +45,7 @@ const nombresDias = {
 const comidasDia = [
   { key: 'desayuno', nombre: 'Desayuno', icono: '🌅' },
   { key: 'media_manana', nombre: 'Media Mañana', icono: '🍎' },
-  { key: 'almuerzo', nombre: 'Almuerzo', icono: '☀️' },
+  { key: 'almuerzo', nombre: 'Comida', icono: '☀️' },
   { key: 'merienda', nombre: 'Merienda', icono: '🍎' },
   { key: 'cena', nombre: 'Cena', icono: '🌙' }
 ] as const;

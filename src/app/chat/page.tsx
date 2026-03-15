@@ -137,7 +137,7 @@ export default function ChatPage() {
                   .insert([{ user_id: userId, peso: parsedReply.peso }]);
                 showToast(`✅ Peso de ${parsedReply.peso}kg registrado`);
               }
-              return;
+              break;
 
             case "actualizar_menu":
               if (parsedReply.dia && parsedReply.comida && parsedReply.nombre) {
@@ -172,7 +172,7 @@ export default function ChatPage() {
                   showToast(`✅ ${parsedReply.comida} de ${parsedReply.dia} actualizado`);
                 }
               }
-              return;
+              break;
 
             case "añadir_suplemento":
               if (parsedReply.nombre && parsedReply.dosis) {
@@ -188,7 +188,7 @@ export default function ChatPage() {
                 
                 showToast(`✅ Suplemento ${parsedReply.nombre} añadido`);
               }
-              return;
+              break;
 
             case "guardar_menu_semanal":
               if (parsedReply.plan) {
@@ -208,7 +208,7 @@ export default function ChatPage() {
                 
                 showToast("✅ Menú semanal guardado en tu pestaña Menú Semanal");
               }
-              return;
+              break;
           }
         } catch (error) {
           console.error("Error ejecutando acción:", error);

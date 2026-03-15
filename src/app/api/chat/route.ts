@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         menuTexto = `\nMenu semanal (semana del ${menuSemanal.semana_inicio}):\n`;
         dias.forEach((dia: string) => {
           const comidas2 = menuSemanal.plan[dia];
-          menuTexto += `${dia}: desayuno=${comidas2.desayuno?.nombre || ""}, almuerzo=${comidas2.almuerzo?.nombre || ""}, cena=${comidas2.cena?.nombre || ""}\n`;
+          menuTexto += `${dia}: desayuno=${comidas2.desayuno?.nombre || ""}, media_manana=${comidas2.media_manana?.nombre || ""}, comida=${comidas2.almuerzo?.nombre || ""}, merienda=${comidas2.merienda?.nombre || ""}, cena=${comidas2.cena?.nombre || ""}\n`;
         });
       }
 

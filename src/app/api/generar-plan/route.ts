@@ -152,6 +152,13 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Eres un nutricionista deportivo experto. Genera un plan de comidas semanal en formato JSON puro, sin texto adicional, sin markdown, sin explicaciones. Solo el JSON.
 
+Datos del usuario:
+Objetivo del usuario: ${perfil.objetivo} (ganar_musculo=+300kcal, perder_grasa=-400kcal, mantenimiento=0)
+Calorías diarias objetivo: ${Math.round(caloriasDiarias)}kcal
+Proteínas objetivo: ${Math.round(perfil.peso * 2)}g/día
+Deporte: ${perfil.deporte}
+Adapta TODAS las comidas y cantidades a este objetivo específico.
+
 La estructura debe ser EXACTAMENTE esta:
 {
   "lunes": {
@@ -167,6 +174,14 @@ La estructura debe ser EXACTAMENTE esta:
   "viernes": { ... },
   "sabado": { ... },
   "domingo": { ... }
+}
+
+Requisitos:
+- Total diario: ${Math.round(caloriasDiarias)}kcal
+- Proteínas: ${Math.round(perfil.peso * 2)}g mínimo
+- Distribución: 5 comidas al día
+- Variedad de alimentos saludables
+- Adaptado al deporte: ${perfil.deporte}
 }
 
 Usuario: objetivo=${perfil.objetivo}, calorias_diarias=${Math.round(caloriasDiarias)}, deporte=${perfil.deporte}
