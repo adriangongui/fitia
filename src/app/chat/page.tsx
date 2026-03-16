@@ -114,11 +114,27 @@ export default function ChatPage() {
         setTimeout(() => document.body.removeChild(toast), 3000);
       };
       
-      // Detectar si la respuesta contiene JSON de acción con patrón /\{"accion":[^}]+\}/
-      const actionMatch = data.reply.match(/\{"accion":[^}]+\}/);
+      // Detectar si la respuesta contiene JSON de acción con regex mejorado
+      const actionMatch = data.reply.match(/\{"accion"\s*:\s*"[^"]+/);
       let parsedReply = null;
       
-      if (actionMatch) {
+      // Intentar detectar JSON completo para guardar_menu_semanal
+      const fullJsonMatch = data.reply.match(/\{[\s\S]*"accion"\s*:\s*"guardar_menu_semanal"[\s\S]*\}/);
+      
+      if (fullJsonMatch) {
+        try {
+          parsedReply = JSON.parse(fullJsonMatch[0]);
+        } catch {
+          // Si falla, intentar con el match simple
+          if (actionMatch) {
+            try {
+              parsedReply = JSON.parse(actionMatch[0]);
+            } catch {
+              // Error al parsear, ignorar
+            }
+          }
+        }
+      } else if (actionMatch) {
         try {
           parsedReply = JSON.parse(actionMatch[0]);
         } catch {
@@ -254,8 +270,16 @@ export default function ChatPage() {
         }
       }
 
-      // Limpiar JSON de la respuesta para el usuario
-      const cleanReply = data.reply.replace(/\{"accion":[^}]+\}/, '').trim();
+      // Limpiar JSON de la respuesta para el usuario (mejorado)
+      let cleanReply = data.reply;
+      
+      // Intentar remover JSON completo primero
+      if (fullJsonMatch) {
+        cleanReply = cleanReply.replace(fullJsonMatch[0], '').trim();
+      } else {
+        // Si no, remover JSON simple
+        cleanReply = cleanReply.replace(/\{"accion"\s*:\s*"[^"]+\}/, '').trim();
+      }
 
       const assistantMessage = {
         id: (Date.now() + 1).toString(),

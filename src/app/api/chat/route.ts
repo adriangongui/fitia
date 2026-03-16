@@ -164,7 +164,14 @@ Ejemplos:
 - 'Anota que peso 76kg' → responde normal + {"accion":"registrar_peso","peso":76}
 - 'Soy alérgico al gluten, cambia el lunes almuerzo' → responde normal + {"accion":"actualizar_menu","dia":"lunes","comida":"almuerzo","nombre":"Ensalada mediterránea sin gluten","calorias":380,"proteinas":25,"carbohidratos":40,"grasas":14}
 - 'Añade vitamina D a mis suplementos' → responde normal + {"accion":"añadir_suplemento","nombre":"Vitamina D","dosis":"1000UI","momento":"Con el desayuno"}
-- 'Mis desayunos fáciles son tostadas con aguacate y avena, pon esos en el menú' → responde normal + {"accion":"actualizar_menu","dia":"TODOS","comida":"desayuno","opciones":["Tostadas con aguacate (2 rebanadas 80g + aguacate 100g)","Avena con leche entera (80g avena + 300ml leche)"]}`;
+- 'Mis desayunos fáciles son tostadas con aguacate y avena, pon esos en el menú' → responde normal + {"accion":"actualizar_menu","dia":"TODOS","comida":"desayuno","opciones":["Tostadas con aguacate (2 rebanadas 80g + aguacate 100g)","Avena con leche entera (80g avena + 300ml leche)"]}
+
+REGLA ABSOLUTA: El JSON de acción SIEMPRE va en la ÚLTIMA línea de tu respuesta, después de todo el texto. NUNCA mezcles el JSON con el texto explicativo. Formato correcto:
+[Tu respuesta normal en máximo 3 líneas]
+{"accion":"guardar_menu_semanal","plan":{...}}
+
+Formato INCORRECTO:
+[Texto] {JSON} [más texto]`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
