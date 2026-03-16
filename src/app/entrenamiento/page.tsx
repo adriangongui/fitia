@@ -44,6 +44,20 @@ export default function EntrenamientoPage() {
     proteinas_extra: number;
     recomendacion: string;
   } | null>(null);
+  
+  // Estados para análisis de imagen
+  const [imagenActividad, setImagenActividad] = useState<string | null>(null);
+  const [analizandoImagen, setAnalizandoImagen] = useState(false);
+  const [datosImagen, setDatosImagen] = useState<{
+    tipo: string;
+    duracion: number;
+    calorias_quemadas: number;
+    distancia_km: number | null;
+    frecuencia_cardiaca_media: number | null;
+    nombre_actividad: string;
+    intensidad: string;
+  } | null>(null);
+  const [editandoImagen, setEditandoImagen] = useState(false);
 
   // Modal state
   const [selectedEntrenamiento, setSelectedEntrenamiento] = useState<Entrenamiento | null>(null);
@@ -135,6 +149,86 @@ export default function EntrenamientoPage() {
     } catch (error) {
       console.error("Error eliminando entrenamiento:", error);
       alert("No se pudo eliminar el entrenamiento");
+    }
+  };
+
+  const handleImagenChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAnalizandoImagen(true);
+    try {
+      const base64 = await fileToBase64(file);
+      setImagenActividad(base64);
+      
+      // Analizar imagen con el API
+      const res = await fetch("/api/analizar-entrenamiento-imagen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: base64,
+          user_id: userId
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setDatosImagen(data);
+      setEditandoImagen(true);
+    } catch (error) {
+      console.error("Error analizando imagen:", error);
+      alert("Error al analizar la imagen. Inténtalo de nuevo.");
+    } finally {
+      setAnalizandoImagen(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+  };
+
+  const cancelarImagen = () => {
+    setImagenActividad(null);
+    setDatosImagen(null);
+    setEditandoImagen(false);
+  };
+
+  const guardarDatosImagen = async () => {
+    if (!datosImagen || !userId) return;
+
+    setCargando(true);
+    try {
+      // Registrar entrenamiento con los datos de la imagen
+      const res = await fetch("/api/analizar-entrenamiento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          tipo: datosImagen.tipo,
+          duracion: datosImagen.duracion,
+          intensidad: datosImagen.intensidad,
+          notas: `Importado desde imagen: ${datosImagen.nombre_actividad}`,
+          hora_entrenamiento: new Date().toISOString().slice(0, 16)
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setResultado(data);
+      setHistorial(prev => [data, ...prev]);
+      cancelarImagen();
+    } catch (error) {
+      console.error("Error guardando datos de imagen:", error);
+      alert("Error al guardar la actividad. Inténtalo de nuevo.");
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -299,6 +393,164 @@ export default function EntrenamientoPage() {
                   {cargando ? "Analizando métricas..." : "Registrar y ajustar nutrición"}
                 </button>
               </form>
+
+            {/* SUBIR IMAGEN DE ACTIVIDAD */}
+            <div className="mt-6 border-t border-zinc-800/50 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                    Importar actividad
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-50">
+                    📸 Subir resumen de actividad
+                  </h2>
+                </div>
+              </div>
+
+              {!imagenActividad ? (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImagenChange}
+                    className="hidden"
+                    id="imagen-actividad"
+                  />
+                  <label
+                    htmlFor="imagen-actividad"
+                    className="w-full flex items-center justify-center gap-3 rounded-xl border-2 border-dashed border-zinc-700/50 bg-zinc-900/30 px-6 py-8 cursor-pointer hover:border-zinc-600/50 hover:bg-zinc-900/50 transition"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17,8 21,8 21,12" />
+                      <polyline points="3,12 7,12 3,8" />
+                    </svg>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-zinc-200">
+                        {analizandoImagen ? "Analizando imagen..." : "Haz clic para subir una captura de tu actividad"}
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Compatible con Garmin, Strava, etc.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-4">
+                    <h3 className="text-sm font-semibold text-zinc-50 mb-3">Datos extraídos de la imagen:</h3>
+                    
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="text-xs text-zinc-500">Tipo actividad</label>
+                        <input
+                          type="text"
+                          value={datosImagen?.tipo || ""}
+                          onChange={(e) => setDatosImagen(prev => ({...prev!, tipo: e.target.value}))}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                          disabled={!editandoImagen}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs text-zinc-500">Duración (min)</label>
+                        <input
+                          type="number"
+                          value={datosImagen?.duracion || ""}
+                          onChange={(e) => setDatosImagen(prev => ({...prev!, duracion: parseInt(e.target.value) || 0}))}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                          disabled={!editandoImagen}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs text-zinc-500">Calorías quemadas</label>
+                        <input
+                          type="number"
+                          value={datosImagen?.calorias_quemadas || ""}
+                          onChange={(e) => setDatosImagen(prev => ({...prev!, calorias_quemadas: parseInt(e.target.value) || 0}))}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                          disabled={!editandoImagen}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs text-zinc-500">Distancia (km)</label>
+                        <input
+                          type="number"
+                          value={datosImagen?.distancia_km || ""}
+                          onChange={(e) => setDatosImagen(prev => ({...prev!, distancia_km: e.target.value ? parseFloat(e.target.value) : null}))}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                          disabled={!editandoImagen}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs text-zinc-500">Intensidad</label>
+                        <select
+                          value={datosImagen?.intensidad || ""}
+                          onChange={(e) => setDatosImagen(prev => ({...prev!, intensidad: e.target.value}))}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                          disabled={!editandoImagen}
+                        >
+                          <option value="">Seleccionar...</option>
+                          <option value="Baja">Baja</option>
+                          <option value="Media">Media</option>
+                          <option value="Alta">Alta</option>
+                          <option value="Máxima">Máxima</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <label className="text-xs text-zinc-500">Nombre actividad</label>
+                      <input
+                        type="text"
+                        value={datosImagen?.nombre_actividad || ""}
+                        onChange={(e) => setDatosImagen(prev => ({...prev!, nombre_actividad: e.target.value}))}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+                        disabled={!editandoImagen}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    {!editandoImagen ? (
+                      <>
+                        <button
+                          onClick={() => setEditandoImagen(true)}
+                          className="flex-1 rounded-lg bg-[#b6f542] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#c8ff62]"
+                        >
+                          Editar datos
+                        </button>
+                        <button
+                          onClick={cancelarImagen}
+                          className="flex-1 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-600"
+                        >
+                          Descartar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={guardarDatosImagen}
+                          disabled={cargando}
+                          className="flex-1 rounded-lg bg-[#b6f542] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#c8ff62] disabled:opacity-50"
+                        >
+                          {cargando ? "Guardando..." : "Registrar actividad"}
+                        </button>
+                        <button
+                          onClick={cancelarImagen}
+                          className="flex-1 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-600"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             </div>
 
             {/* RESULTADO IA */}

@@ -118,6 +118,16 @@ DATOS DEL ENTRENAMIENTO:
 
 TAREA:
 Basándote en estos datos y en que ${contextoTemporal}, genera una recomendación nutricional corta, motivadora y extremadamente práctica sobre qué debería comer o cómo debería ajustar sus macros AHORA MISMO y para el resto del día para optimizar sus resultados según su objetivo.
+
+RECOMENDACIÓN DE PROTEÍNA ESPECÍFICA:
+La recomendación de proteína debe ser exacta según el tipo e intensidad del entrenamiento. No siempre recomendar 20g. Justifica científicamente la cantidad según:
+- Fuerza Alta/Máxima: 30-40g proteína post-entreno (necesario para síntesis proteica y recuperación muscular)
+- Fuerza Media: 20-25g proteína (adecuado para mantenimiento y recuperación moderada)
+- Cardio Alta/Máxima más de 60min: 20-25g proteína (para recuperación y preservación muscular en esfuerzo prolongado)
+- Cardio Media menos de 60min: 10-15g proteína (suficiente para recuperación en cardio moderado)
+- Cardio Baja: 0-10g proteína (baja intensidad no requiere alta recuperación proteica)
+- Mixto: según intensidad 15-30g proteína (balance entre fuerza y cardio según intensidad dominante)
+
 Indícale también cuántos gramos extra de proteína le recomendarías consumir hoy para recuperar. Sé concisa (máximo 4 líneas).
 `;
 
