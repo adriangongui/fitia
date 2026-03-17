@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<{ id: string; role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [ultimaAccionPendiente, setUltimaAccionPendiente] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -72,9 +73,30 @@ export default function ChatPage() {
        currentInput.toLowerCase().includes('regenera') || currentInput.toLowerCase().includes('crea') ||
        currentInput.toLowerCase().includes('genera'));
 
-    if (esPeticionMenu) {
+    // Detectar confirmación de acción pendiente (ej: "exacto", "hazlo", "sí", "venga", "dale")
+    const esConfirmacionAccion = ultimaAccionPendiente && 
+      (currentInput.toLowerCase().includes('exacto') || 
+       currentInput.toLowerCase() === 'hazlo' ||
+       currentInput.toLowerCase() === 'sí' ||
+       currentInput.toLowerCase() === 'si' ||
+       currentInput.toLowerCase().includes('venga') ||
+       currentInput.toLowerCase().includes('dale') ||
+       currentInput.toLowerCase() === 'ok' ||
+       currentInput.toLowerCase().includes('perfecto'));
+
+    if (esPeticionMenu || esConfirmacionAccion) {
       // Interceptar y llamar directamente a /api/generar-plan
       showToast("🔄 Regenerando tu menú semanal...");
+      
+      // Usar ultimaAccionPendiente si es confirmación, o el mensaje actual si es petición directa
+      const instrucciones = esConfirmacionAccion && ultimaAccionPendiente 
+        ? ultimaAccionPendiente 
+        : currentInput;
+      
+      // Limpiar la acción pendiente
+      if (esConfirmacionAccion) {
+        setUltimaAccionPendiente(null);
+      }
       
       try {
         const resGenerar = await fetch("/api/generar-plan", {
@@ -82,7 +104,7 @@ export default function ChatPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: userId,
-            instrucciones_extra: currentInput
+            instrucciones_extra: instrucciones
           })
         });
 
@@ -163,7 +185,7 @@ export default function ChatPage() {
 
       const data = await res.json();
       
-      // Función para mostrar toast
+      // Función para mostrar toast (definida aquí para usar en detección de regenerar_menu)
       const showToast = (message: string) => {
         const toast = document.createElement('div');
         toast.className = 'fixed bottom-4 right-4 bg-zinc-800 text-zinc-100 px-4 py-2 rounded-lg shadow-lg z-[9999] animate-pulse';
@@ -171,6 +193,37 @@ export default function ChatPage() {
         document.body.appendChild(toast);
         setTimeout(() => document.body.removeChild(toast), 3000);
       };
+      
+      // Detectar si la respuesta contiene {"accion":"regenerar_menu"} y ejecutar inmediatamente
+      const regenerarMatch = data.reply.match(/\{"accion"\s*:\s*"regenerar_menu"[^}]*\}/);
+      if (regenerarMatch) {
+        try {
+          const accion = JSON.parse(regenerarMatch[0]);
+          if (accion.instrucciones) {
+            // Guardar la acción pendiente para confirmaciones posteriores
+            setUltimaAccionPendiente(accion.instrucciones);
+            
+            // Ejecutar regeneración inmediatamente
+            showToast("🔄 Regenerando tu menú semanal...");
+            const resGenerar = await fetch("/api/generar-plan", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                user_id: userId, 
+                instrucciones_extra: accion.instrucciones 
+              })
+            });
+            const dataGenerar = await resGenerar.json();
+            if (dataGenerar.plan) {
+              showToast("✅ Menú semanal actualizado");
+              // Limpiar la acción pendiente ya que se ejecutó
+              setUltimaAccionPendiente(null);
+            }
+          }
+        } catch(e) {
+          // Si falla el parseo, continuar con el flujo normal
+        }
+      }
       
       // Detectar si la respuesta contiene JSON de acción con regex mejorado
       const actionMatch = data.reply.match(/\{"accion"\s*:\s*"[^"]+/);
