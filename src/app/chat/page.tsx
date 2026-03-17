@@ -56,6 +56,64 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
 
+    // Función para mostrar toast (definida aquí para usar en interceptación)
+    const showToast = (message: string) => {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 bg-zinc-800 text-zinc-100 px-4 py-2 rounded-lg shadow-lg z-[9999] animate-pulse';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => document.body.removeChild(toast), 3000);
+    };
+
+    // Detectar si es una petición de modificación de menú
+    const esPeticionMenu = (currentInput.toLowerCase().includes('menú') || currentInput.toLowerCase().includes('menu')) && 
+      (currentInput.toLowerCase().includes('adapta') || currentInput.toLowerCase().includes('cambia') || 
+       currentInput.toLowerCase().includes('modifica') || currentInput.toLowerCase().includes('actualiza') ||
+       currentInput.toLowerCase().includes('regenera') || currentInput.toLowerCase().includes('crea') ||
+       currentInput.toLowerCase().includes('genera'));
+
+    if (esPeticionMenu) {
+      // Interceptar y llamar directamente a /api/generar-plan
+      showToast("🔄 Regenerando tu menú semanal...");
+      
+      try {
+        const resGenerar = await fetch("/api/generar-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            instrucciones_extra: currentInput
+          })
+        });
+
+        if (!resGenerar.ok) {
+          throw new Error("Error al regenerar el menú");
+        }
+
+        const dataGenerar = await resGenerar.json();
+        
+        if (dataGenerar.plan) {
+          showToast("✅ Menú semanal actualizado. Puedes verlo en la pestaña Menú Semanal");
+          
+          // Añadir mensaje del asistente en el chat
+          const assistantMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant" as const,
+            content: "He regenerado tu menú semanal con tus instrucciones. Puedes verlo en la pestaña Menú Semanal 📅",
+          };
+          
+          setMessages((prev) => [...prev, assistantMessage]);
+          setIsLoading(false);
+          return; // NO enviar al /api/chat
+        }
+      } catch (error) {
+        console.error("Error regenerando menú:", error);
+        showToast("❌ Error al regenerar el menú");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     // If this is the very first message of a new conversation, map it in the sidebar
     if (!conversationId) {
       setConversationId(activeConvId);
