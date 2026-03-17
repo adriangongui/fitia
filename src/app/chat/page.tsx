@@ -312,6 +312,39 @@ export default function ChatPage() {
         cleanReply = cleanReply.replace(/\{"accion"\s*:\s*"[^"]+\}/, '').trim();
       }
 
+      // Detectar si la respuesta contiene JSON de menú mezclado
+      const contieneMenuJSON = data.reply.includes('"media_manana"') || 
+                                data.reply.includes('"almuerzo"') || 
+                                data.reply.includes('"desayuno"') && data.reply.includes('"calorias"');
+
+      if (contieneMenuJSON) {
+        // Intentar extraer el JSON completo
+        const jsonMatch = data.reply.match(/\{[\s\S]*"lunes"[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const plan = JSON.parse(jsonMatch[0]);
+            // Guardar directamente en Supabase
+            const lunesActual = new Date();
+            lunesActual.setDate(lunesActual.getDate() - lunesActual.getDay() + 1);
+            await supabase.from("planes_comida").upsert({
+              user_id: userId,
+              semana_inicio: lunesActual.toISOString().split("T")[0],
+              plan: plan,
+              objetivo: "chat"
+            }, { onConflict: "user_id,semana_inicio" });
+            showToast("✅ Menú semanal actualizado");
+            // Limpiar el JSON del mensaje mostrado
+            cleanReply = "He actualizado tu menú semanal. Puedes verlo en la pestaña Menú Semanal.";
+          } catch(e) {
+            // Si no se puede parsear, solo mostrar mensaje limpio
+            cleanReply = "He actualizado tu menú semanal. Puedes verlo en la pestaña Menú Semanal.";
+            showToast("🔄 Revisa tu menú semanal");
+          }
+        } else {
+          cleanReply = "He preparado los cambios para tu menú. ¿Quieres que regenere el menú completo con estas instrucciones?";
+        }
+      }
+
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant" as const,
