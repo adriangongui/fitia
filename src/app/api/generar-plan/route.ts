@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
       calorias_objetivo, 
       proteinas_objetivo, 
       carbohidratos_objetivo, 
-      grasas_objetivo 
+      grasas_objetivo,
+      instrucciones_extra 
     } = await request.json();
 
     if (!user_id) {
@@ -106,6 +107,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Generando plan para user_id:", user_id);
+    if (instrucciones_extra) {
+      console.log("Instrucciones adicionales:", instrucciones_extra);
+    }
 
     // Si vienen los macros del frontend, usarlos directamente
     let caloriasDiarias, proteinasGramos, grasasGramos, carbohidratosGramos;
@@ -224,6 +228,7 @@ DATOS DEL USUARIO:
 - Proteínas diarias mínimas: ${Math.round(proteinasGramos)}g
 - Deporte: ${perfil.deporte || 'gimnasio'}
 - Actividad: ${perfil.actividad}
+${instrucciones_extra ? `\nInstrucciones adicionales del usuario: ${instrucciones_extra}\n` : ''}
 
 REGLAS OBLIGATORIAS:
 - Cada plato DEBE incluir la cantidad en gramos en el nombre. Ejemplo: 'Pechuga de pollo a la plancha (250g)' no solo 'Pechuga de pollo'

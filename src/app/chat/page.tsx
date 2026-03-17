@@ -263,6 +263,37 @@ export default function ChatPage() {
                 showToast("✅ Menú semanal guardado en tu pestaña Menú Semanal");
               }
               break;
+
+            case "regenerar_menu":
+              if (parsedReply.instrucciones) {
+                showToast("🔄 Regenerando tu menú semanal...");
+                
+                try {
+                  // Llamar a /api/generar-plan con las instrucciones adicionales
+                  const resGenerar = await fetch("/api/generar-plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      user_id: userId,
+                      instrucciones_extra: parsedReply.instrucciones
+                    })
+                  });
+
+                  if (!resGenerar.ok) {
+                    throw new Error("Error al regenerar el menú");
+                  }
+
+                  const dataGenerar = await resGenerar.json();
+                  
+                  if (dataGenerar.plan) {
+                    showToast("✅ Menú semanal actualizado");
+                  }
+                } catch (error) {
+                  console.error("Error regenerando menú:", error);
+                  showToast("❌ Error al regenerar el menú");
+                }
+              }
+              break;
           }
         } catch (error) {
           console.error("Error ejecutando acción:", error);
