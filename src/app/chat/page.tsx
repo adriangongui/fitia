@@ -225,37 +225,32 @@ export default function ChatPage() {
         }
       }
       
-      // Detectar si la respuesta contiene JSON de acción con regex mejorado
-      console.log("Respuesta completa de la IA:", data.reply);
-      const actionMatch = data.reply.match(/\{"accion"\s*:\s*"[^"]+/);
+      const replyText = data.reply || "";
+      console.log("Respuesta IA:", replyText.substring(0, 300));
+
+      // Buscar cualquier JSON con "accion" en la respuesta
       let parsedReply = null;
-      
-      // Intentar detectar JSON completo para guardar_menu_semanal
-      const fullJsonMatch = data.reply.match(/\{[\s\S]*"accion"\s*:\s*"guardar_menu_semanal"[\s\S]*\}/);
-      
-      console.log("JSON encontrado:", fullJsonMatch?.[0]?.substring(0, 200) || actionMatch?.[0]?.substring(0, 200));
-      
-      if (fullJsonMatch) {
-        try {
-          parsedReply = JSON.parse(fullJsonMatch[0]);
-          console.log("Acción parseada:", JSON.stringify(parsedReply).substring(0, 200));
-        } catch {
-          // Si falla, intentar con el match simple
-          if (actionMatch) {
-            try {
-              parsedReply = JSON.parse(actionMatch[0]);
-            } catch {
-              // Error al parsear, ignorar
+      const jsonRegex = /\{[^{}]*"accion"[^{}]*\}|\{[\s\S]*?"accion"[\s\S]*?\}/g;
+      const matches = replyText.match(jsonRegex);
+      console.log("Matches encontrados:", matches?.length);
+
+      if (matches) {
+        for (const match of matches) {
+          try {
+            const parsed = JSON.parse(match);
+            if (parsed.accion) {
+              parsedReply = parsed;
+              console.log("Acción detectada:", parsed.accion);
+              break;
             }
+          } catch {
+            // intentar siguiente match
           }
         }
-      } else if (actionMatch) {
-        try {
-          parsedReply = JSON.parse(actionMatch[0]);
-        } catch {
-          // Error al parsear, ignorar
-        }
       }
+
+      // Limpiar JSON de la respuesta mostrada
+      const cleanReply = replyText.replace(/\{[\s\S]*?"accion"[\s\S]*?\}/g, "").trim();
 
       // Ejecutar acciones especiales
       if (parsedReply) {
@@ -380,6 +375,57 @@ export default function ChatPage() {
               }
               break;
 
+            case "regenerar_menu_con_perfil":
+              {
+                showToast("🔄 Regenerando tu menú semanal...");
+                
+                try {
+                  // Cargar perfil del usuario
+                  const { data: perfil } = await supabase
+                    .from("perfiles")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .single();
+
+                  // Llamar a /api/generar-plan con el user_id
+                  const resGenerar = await fetch("/api/generar-plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      user_id: userId
+                    })
+                  });
+
+                  if (!resGenerar.ok) {
+                    throw new Error("Error al regenerar el menú");
+                  }
+
+                  const dataGenerar = await resGenerar.json();
+                  
+                  if (dataGenerar.plan) {
+                    // Guardar en planes_comida
+                    const startOfWeek = new Date();
+                    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
+                    startOfWeek.setHours(0, 0, 0, 0);
+
+                    await supabase
+                      .from("planes_comida")
+                      .upsert({
+                        user_id: userId,
+                        semana_inicio: startOfWeek.toISOString(),
+                        plan: dataGenerar.plan,
+                        objetivo: "generado_por_chat"
+                      }, { onConflict: "user_id, semana_inicio" });
+                    
+                    showToast("✅ Menú regenerado con tus calorías objetivo");
+                  }
+                } catch (error) {
+                  console.error("Error regenerando menú:", error);
+                  showToast("❌ Error al regenerar el menú");
+                }
+              }
+              break;
+
             case "regenerar_menu":
               if (parsedReply.instrucciones) {
                 showToast("🔄 Regenerando tu menú semanal...");
@@ -414,50 +460,6 @@ export default function ChatPage() {
         } catch (error) {
           console.error("Error ejecutando acción:", error);
           showToast("❌ Error al ejecutar la acción");
-        }
-      }
-
-      // Limpiar JSON de la respuesta para el usuario (mejorado)
-      let cleanReply = data.reply;
-      
-      // Intentar remover JSON completo primero
-      if (fullJsonMatch) {
-        cleanReply = cleanReply.replace(fullJsonMatch[0], '').trim();
-      } else {
-        // Si no, remover JSON simple
-        cleanReply = cleanReply.replace(/\{"accion"\s*:\s*"[^"]+\}/, '').trim();
-      }
-
-      // Detectar si la respuesta contiene JSON de menú mezclado
-      const contieneMenuJSON = data.reply.includes('"media_manana"') || 
-                                data.reply.includes('"almuerzo"') || 
-                                data.reply.includes('"desayuno"') && data.reply.includes('"calorias"');
-
-      if (contieneMenuJSON) {
-        // Intentar extraer el JSON completo
-        const jsonMatch = data.reply.match(/\{[\s\S]*"lunes"[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const plan = JSON.parse(jsonMatch[0]);
-            // Guardar directamente en Supabase
-            const lunesActual = new Date();
-            lunesActual.setDate(lunesActual.getDate() - lunesActual.getDay() + 1);
-            await supabase.from("planes_comida").upsert({
-              user_id: userId,
-              semana_inicio: lunesActual.toISOString().split("T")[0],
-              plan: plan,
-              objetivo: "chat"
-            }, { onConflict: "user_id,semana_inicio" });
-            showToast("✅ Menú semanal actualizado");
-            // Limpiar el JSON del mensaje mostrado
-            cleanReply = "He actualizado tu menú semanal. Puedes verlo en la pestaña Menú Semanal.";
-          } catch(e) {
-            // Si no se puede parsear, solo mostrar mensaje limpio
-            cleanReply = "He actualizado tu menú semanal. Puedes verlo en la pestaña Menú Semanal.";
-            showToast("🔄 Revisa tu menú semanal");
-          }
-        } else {
-          cleanReply = "He preparado los cambios para tu menú. ¿Quieres que regenere el menú completo con estas instrucciones?";
         }
       }
 
