@@ -226,15 +226,19 @@ export default function ChatPage() {
       }
       
       // Detectar si la respuesta contiene JSON de acción con regex mejorado
+      console.log("Respuesta completa de la IA:", data.reply);
       const actionMatch = data.reply.match(/\{"accion"\s*:\s*"[^"]+/);
       let parsedReply = null;
       
       // Intentar detectar JSON completo para guardar_menu_semanal
       const fullJsonMatch = data.reply.match(/\{[\s\S]*"accion"\s*:\s*"guardar_menu_semanal"[\s\S]*\}/);
       
+      console.log("JSON encontrado:", fullJsonMatch?.[0]?.substring(0, 200) || actionMatch?.[0]?.substring(0, 200));
+      
       if (fullJsonMatch) {
         try {
           parsedReply = JSON.parse(fullJsonMatch[0]);
+          console.log("Acción parseada:", JSON.stringify(parsedReply).substring(0, 200));
         } catch {
           // Si falla, intentar con el match simple
           if (actionMatch) {
@@ -357,6 +361,7 @@ export default function ChatPage() {
 
             case "guardar_menu_semanal":
               if (parsedReply.plan) {
+                console.log("Plan a guardar:", JSON.stringify(parsedReply.plan).substring(0, 300));
                 // Obtener fecha del lunes de esta semana
                 const startOfWeek = new Date();
                 startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Lunes

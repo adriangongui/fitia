@@ -202,6 +202,7 @@ Formato INCORRECTO:
     }
 
     const reply = data.choices?.[0]?.message?.content || "";
+    console.log("Respuesta Groq completa:", reply.substring(0, 500));
     return NextResponse.json({ reply });
 
   } catch (error) {
