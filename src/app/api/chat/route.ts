@@ -121,8 +121,7 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = isTitleRequest
       ? "Resume en maximo 5 palabras de que trata esta conversacion. Solo las palabras, sin puntuacion."
-      : `Eres FitIA, nutricionista deportiva experta. Responde en espanol, maximo 4 lineas, tono cercano, termina con una pregunta corta.
-${CONOCIMIENTO_NUTRICIONAL}
+      : `Eres FitIA, nutricionista deportiva experta. Responde en espanol, maximo 4 lineas, tono cercano, termina con una pregunta corta.\nREGLA CRITICA: Si necesitas actualizar el menu semanal completo, SIEMPRE usa {"accion":"guardar_menu_semanal","plan":{...}} con el JSON completo. NUNCA escribas el menu en texto. Si el JSON es muy largo, igualmente incluyelo completo al final de tu respuesta corta.\n${CONOCIMIENTO_NUTRICIONAL}
 ${perfilTexto}
 ${suplementosTexto}
 ${contextoHoy ? "=== CONTEXTO RECIENTE ===\n" + contextoHoy : ""}
@@ -189,7 +188,7 @@ Formato INCORRECTO:
       body: JSON.stringify({
         model: "meta-llama/llama-4-scout-17b-16e-instruct",
         messages: [{ role: "system", content: systemPrompt }, ...messages.map((m: any) => ({ role: m.role, content: m.content }))],
-        max_tokens: 500,
+        max_tokens: 2000,
         temperature: 0.7,
       }),
     });
