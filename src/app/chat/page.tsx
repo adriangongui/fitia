@@ -43,7 +43,20 @@ export default function ChatPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || !userId) return;
+    if (!input.trim() || isLoading) return;
+
+    // Obtener userId si no está disponible
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id || userId;
+    if (!currentUserId) {
+      router.replace("/login");
+      return;
+    }
+    
+    // Actualizar estado si es necesario
+    if (user?.id && !userId) {
+      setUserId(user.id);
+    }
 
     const currentInput = input.trim();
     // Ensure we have a conversationId for the initial message
@@ -103,7 +116,7 @@ export default function ChatPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: userId,
+            user_id: currentUserId,
             instrucciones_extra: instrucciones
           })
         });
@@ -153,7 +166,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: user: ${currentInput}` }],
           isTitleRequest: true,
-          user_id: userId,
+          user_id: currentUserId,
         }),
       }).then(res => res.json()).then(data => {
          if (data.reply) {
@@ -165,7 +178,7 @@ export default function ChatPage() {
     try {
       // Guardar mensaje del usuario en base de datos
       const userMessageData = {
-        user_id: userId,
+        user_id: currentUserId,
         conversation_id: activeConvId,
         role: "user",
         content: currentInput,
@@ -173,10 +186,11 @@ export default function ChatPage() {
       console.log("Guardando mensaje:", userMessageData);
       await supabase.from("mensajes_chat").insert([userMessageData]);
 
+      console.log("userId al enviar:", currentUserId);
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, user_id: userId }),
+        body: JSON.stringify({ messages: newMessages, user_id: currentUserId }),
       });
 
       if (!res.ok) {
@@ -209,7 +223,7 @@ export default function ChatPage() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
-                user_id: userId, 
+                user_id: currentUserId, 
                 instrucciones_extra: accion.instrucciones 
               })
             });
@@ -260,7 +274,7 @@ export default function ChatPage() {
               if (parsedReply.peso) {
                 await supabase
                   .from("registros_peso")
-                  .insert([{ user_id: userId, peso: parsedReply.peso }]);
+                  .insert([{ user_id: currentUserId, peso: parsedReply.peso }]);
                 showToast(`✅ Peso de ${parsedReply.peso}kg registrado`);
               }
               break;
@@ -272,7 +286,7 @@ export default function ChatPage() {
                   const { data: planActual } = await supabase
                     .from("planes_comida")
                     .select("*")
-                    .eq("user_id", userId)
+                    .eq("user_id", currentUserId)
                     .order("created_at", { ascending: false })
                     .limit(1)
                     .maybeSingle();
@@ -307,7 +321,7 @@ export default function ChatPage() {
                   const { data: menuActual } = await supabase
                     .from("planes_comida")
                     .select("plan")
-                    .eq("user_id", userId)
+                    .eq("user_id", currentUserId)
                     .order("created_at", { ascending: false })
                     .limit(1)
                     .single();
@@ -330,7 +344,7 @@ export default function ChatPage() {
                     await supabase
                       .from("planes_comida")
                       .update({ plan: planActualizado })
-                      .eq("user_id", userId);
+                      .eq("user_id", currentUserId);
                       
                     showToast(`✅ ${parsedReply.comida} de ${parsedReply.dia} actualizado`);
                   }
@@ -343,7 +357,7 @@ export default function ChatPage() {
                 await supabase
                   .from("suplementos")
                   .insert([{
-                    user_id: userId,
+                    user_id: currentUserId,
                     nombre: parsedReply.nombre,
                     dosis: parsedReply.dosis,
                     momento: parsedReply.momento || "Sin especificar",
@@ -365,7 +379,7 @@ export default function ChatPage() {
                 await supabase
                   .from("planes_comida")
                   .upsert({
-                    user_id: userId,
+                    user_id: currentUserId,
                     semana_inicio: startOfWeek.toISOString(),
                     plan: parsedReply.plan,
                     objetivo: "generado_por_chat"
@@ -384,7 +398,7 @@ export default function ChatPage() {
                   const { data: perfil } = await supabase
                     .from("perfiles")
                     .select("*")
-                    .eq("user_id", userId)
+                    .eq("user_id", currentUserId)
                     .single();
 
                   // Llamar a /api/generar-plan con el user_id
@@ -392,7 +406,7 @@ export default function ChatPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      user_id: userId
+                      user_id: currentUserId
                     })
                   });
 
@@ -404,20 +418,18 @@ export default function ChatPage() {
                   
                   if (dataGenerar.plan) {
                     // Guardar en planes_comida
-                    const startOfWeek = new Date();
-                    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
-                    startOfWeek.setHours(0, 0, 0, 0);
+                    const lunesDeEstaSemana = new Date();
+                    lunesDeEstaSemana.setDate(lunesDeEstaSemana.getDate() - lunesDeEstaSemana.getDay() + 1);
+                    const semanaInicio = lunesDeEstaSemana.toISOString().split("T")[0];
 
-                    await supabase
-                      .from("planes_comida")
-                      .upsert({
-                        user_id: userId,
-                        semana_inicio: startOfWeek.toISOString(),
-                        plan: dataGenerar.plan,
-                        objetivo: "generado_por_chat"
-                      }, { onConflict: "user_id, semana_inicio" });
+                    await supabase.from("planes_comida").upsert({
+                      user_id: currentUserId,
+                      semana_inicio: semanaInicio,
+                      plan: dataGenerar.plan,
+                      objetivo: "regenerado_por_chat"
+                    }, { onConflict: "user_id,semana_inicio" });
                     
-                    showToast("✅ Menú regenerado con tus calorías objetivo");
+                    showToast("✅ Menú semanal actualizado en tu pestaña Menú Semanal");
                   }
                 } catch (error) {
                   console.error("Error regenerando menú:", error);
@@ -436,7 +448,7 @@ export default function ChatPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      user_id: userId,
+                      user_id: currentUserId,
                       instrucciones_extra: parsedReply.instrucciones
                     })
                   });
@@ -473,7 +485,7 @@ export default function ChatPage() {
 
       // Guardar respuesta del asistente en la base de datos
       const assistantMessageData = {
-        user_id: userId,
+        user_id: currentUserId,
         conversation_id: activeConvId,
         role: "assistant",
         content: assistantMessage.content,

@@ -115,32 +115,19 @@ export async function POST(request: NextRequest) {
     let caloriasDiarias, proteinasGramos, grasasGramos, carbohidratosGramos;
     let perfil: any;
     
-    if (calorias_objetivo && proteinas_objetivo && carbohidratos_objetivo && grasas_objetivo) {
-      console.log("Usando macros del frontend");
+    if (calorias_objetivo && calorias_objetivo > 0) {
       caloriasDiarias = calorias_objetivo;
-      proteinasGramos = proteinas_objetivo;
-      carbohidratosGramos = carbohidratos_objetivo;
-      grasasGramos = grasas_objetivo;
+      proteinasGramos = proteinas_objetivo || Math.round(calorias_objetivo * 0.3 / 4);
+      carbohidratosGramos = carbohidratos_objetivo || Math.round(calorias_objetivo * 0.45 / 4);
+      grasasGramos = grasas_objetivo || Math.round(calorias_objetivo * 0.25 / 9);
+      console.log("Usando calorías del frontend:", caloriasDiarias);
       
-      // Cargar perfil solo para datos adicionales (no para cálculo)
-      const { data: perfilData } = await supabase
-        .from("perfiles")
-        .select("*")
-        .eq("user_id", user_id)
-        .maybeSingle();
-
-      perfil = perfilData || {
+      // Perfil mínimo para el prompt
+      perfil = {
         objetivo: "mantenimiento",
         deporte: "gimnasio",
         actividad: "moderado"
       };
-
-      console.log("Macros recibidos del frontend:", {
-        calorias: caloriasDiarias,
-        proteinas: proteinasGramos,
-        carbohidratos: carbohidratosGramos,
-        grasas: grasasGramos
-      });
     } else {
       console.log("Calculando macros con Harris-Benedict (fallback)");
       
