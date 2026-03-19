@@ -160,19 +160,25 @@ export default function ChatPage() {
       }, ...prev]);
 
       // Async title generation for the first message
-      fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: user: ${currentInput}` }],
-          isTitleRequest: true,
-          user_id: currentUserId,
-        }),
-      }).then(res => res.json()).then(data => {
-         if (data.reply) {
-           setConversations(prev => prev.map(c => c.id === activeConvId ? { ...c, title: data.reply } : c));
-         }
-      }).catch(console.error);
+      // Obtener userId actual para el título
+      const { data: { user: userForTitle } } = await supabase.auth.getUser();
+      const titleUserId = userForTitle?.id;
+      
+      if (titleUserId) {
+        fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: `Resume en máximo 5 palabras de qué trata esta conversación: user: ${currentInput}` }],
+            isTitleRequest: true,
+            user_id: titleUserId,
+          }),
+        }).then(res => res.json()).then(data => {
+           if (data.reply) {
+             setConversations(prev => prev.map(c => c.id === activeConvId ? { ...c, title: data.reply } : c));
+           }
+        }).catch(console.error);
+      }
     }
 
     try {

@@ -131,12 +131,20 @@ export async function POST(request: NextRequest) {
     } else {
       console.log("Calculando macros con Harris-Benedict (fallback)");
       
+      // Crear cliente admin para acceder al perfil
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
       // Cargar perfil para cálculo
-      const { data: perfilData } = await supabase
+      const { data: perfilData } = await supabaseAdmin
         .from("perfiles")
         .select("*")
         .eq("user_id", user_id)
         .maybeSingle();
+
+      console.log("Perfil real cargado:", perfilData);
 
       perfil = perfilData;
       

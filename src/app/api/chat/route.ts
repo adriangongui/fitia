@@ -24,16 +24,23 @@ export async function POST(request: NextRequest) {
     let pesoTexto = "";
 
     if (user_id) {
+      // Verificar configuración de Supabase
+      console.log("Service role key disponible:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+      console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30));
+
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      const { data: perfil } = await supabaseAdmin
+      const { data: perfil, error: errorPerfil } = await supabaseAdmin
         .from("perfiles")
         .select("*")
         .eq("user_id", user_id)
         .maybeSingle();
+
+      console.log("Error perfil:", errorPerfil);
+      console.log("Perfil encontrado:", perfil);
 
       console.log("Perfil:", JSON.stringify(perfil));
 
